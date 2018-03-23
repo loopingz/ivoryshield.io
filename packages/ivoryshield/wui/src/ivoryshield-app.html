@@ -1,0 +1,471 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-scroll-effects/app-scroll-effects.html">
+<link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../bower_components/paper-tabs/paper-tab.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="my-icons.html">
+
+<link rel="lazy-import" href="ivoryshield-accounts.html">
+<link rel="lazy-import" href="ivoryshield-configurers.html">
+<link rel="lazy-import" href="ivoryshield-validators.html">
+<link rel="lazy-import" href="ivoryshield-view404.html">
+
+<dom-module id="ivoryshield-app">
+  <template>
+    <style include="iron-flex">
+      :host {
+        --app-primary-color: #4285f4;
+        --app-secondary-color: black;
+        --app-background-color: #add2dd;
+        --app-light-background-color: #fefae22b;
+        --app-accent-color: #1c4e7c;
+        --app-buttons: #5aa2c5;
+        --app-buttons-disabled: #8bbdd6;
+        display: block;
+      }
+
+      app-drawer-layout:not([narrow]) [drawer-toggle] {
+        display: none;
+      }
+
+      app-header {
+        color: #fff;
+        background-color: var(--app-background-color);
+      }
+
+      app-header paper-icon-button {
+        --paper-icon-button-ink-color: white;
+      }
+
+      .drawer-list {
+        margin: 0 20px;
+      }
+
+      .drawer-list a {
+        display: block;
+        padding: 0 16px;
+        text-decoration: none;
+        color: var(--app-secondary-color);
+        line-height: 40px;
+      }
+
+      #test {
+        @apply(--layout-vertical);
+        @apply(--layout-justified);
+        height: 100%;
+      }
+
+      #logoDrawer {
+        background-image: url('/images/logo.png');
+        background-repeat: no-repeat;
+        background-size: 150px 150px;
+        width: 150px;
+        height: 150px;
+        left: 50px;
+        bottom: 150px;
+        position: absolute;
+      }
+      app-toolbar {
+        background-color: var(--app-background-color);
+      }
+      paper-tabs {
+        --paper-tabs-selection-bar-color: #55a8d6;
+        border-top: 2px solid #e8da71;
+        --paper-tabs-selection-bar: {
+          height: 5px;
+        }
+      }
+      h1 {
+        text-align: center;
+        margin-top: 5px;
+      }
+      app-toolbar > div {
+        color: var(--app-accent-color);
+        font-weight: bold;
+        margin-right: 45px;
+      }
+      h2 {
+        margin-bottom: 0px;
+        margin-top: 0px;
+        text-align: center;
+        border-top: 2px solid #fefae2;
+
+        padding-top: 5px;
+        padding-bottom: 5px;
+        opacity: 0.8;
+      }
+      app-drawer {
+        --app-drawer-content-container: {
+          background-color: white;
+          border-right: 1px solid #1c4e7c96;
+        }
+      }
+      app-header-layout {
+        background-color: var(--app-light-background-color);
+      }
+      app-toolbar {
+        padding-right: 0px;
+      }
+      app-toolbar paper-item {
+        padding: 20px;
+      }
+      app-toolbar paper-item:after {
+        content: "";
+        width: 0;
+        height: 0;
+        border-top: 20px solid transparent;
+        border-bottom: 20px solid transparent;
+        border-left: 20px solid green;
+      }
+
+      #logo {
+        background-image: url(/images/logo.png);
+        background-repeat: no-repeat;
+        background-size: 64px 64px;
+        height: 64px;
+        position: absolute;
+        width: 64px;
+        margin-left: -53px;
+      }
+      app-toolbar > ul {
+
+        list-style: none;
+        display: inline-block;
+        margin: 0px;
+        height: 64px;
+        padding: 0px;
+        padding-left: 32px;
+      }
+      app-toolbar .icon {
+        font-size: 14px;
+      }
+      app-toolbar li {
+        float: left;
+      }
+      app-toolbar iron-icon {
+        margin-right: 10px;
+      }
+      app-toolbar li a {
+        color: #FFF;
+        display: block;
+        transition: background-color 0.3s, border-color 0.3s;
+        background: var(--app-buttons-disabled);
+        text-decoration: none;
+        position: relative;
+        height: 64px;
+        line-height: 64px;
+        padding: 0 10px 0 5px;
+        text-align: center;
+        margin-right: 23px;
+      }
+      app-toolbar li:first-of-type a {
+        padding-left: 20px;
+      }
+      /*
+      app-toolbar li:nth-child(even) a {
+        background-color: #5078a0;
+      }
+      app-toolbar li:nth-child(even) a:before {
+        border-color: #5078a0;
+        border-left-color: transparent;
+      }
+      app-toolbar li:nth-child(even) a:after {
+        border-left-color: #5078a0;
+      }
+      */
+      app-toolbar li:last-of-type a {
+        padding-right: 15px;
+        -moz-border-radius: 0 4px 4px 0;
+        -webkit-border-radius: 0;
+        border-radius: 0 4px 4px 0;
+      }
+      app-toolbar li:last-of-type a:after {
+        border: none;
+      }
+      app-toolbar li a:before, app-toolbar li a:after {
+        transition: background-color 0.3s, border-color 0.3s;
+        content: "";
+        position: absolute;
+        top: 0;
+        border: 0 solid var(--app-buttons-disabled);
+        border-width: 32px 10px;
+        width: 0;
+        height: 0;
+      }
+
+      app-toolbar li a:before {
+        left: -20px;
+        border-left-color: transparent;
+      }
+      app-toolbar li a:after {
+        left: 100%;
+        border-color: transparent;
+        border-left-color: var(--app-buttons-disabled);
+      }
+      app-toolbar li a:hover {
+        background-color: #fefae2;
+        color: var(--app-accent-color);
+      }
+      app-toolbar li a:hover:before {
+        border-color: #fefae2;
+        border-left-color: transparent;
+      }
+      app-toolbar li a:hover:after {
+        border-left-color: #fefae2;
+      }
+      app-toolbar li a:active {
+        background-color: #fdf6c4;
+      }
+      app-toolbar li a:active:before {
+        border-color: #fdf6c4;
+        border-left-color: transparent;
+      }
+      app-toolbar li a:active:after {
+        border-left-color: #fdf6c4;
+      }
+      paper-icon-button[icon="menu"] {
+        display: none;
+      }
+
+      app-toolbar li.iron-selected a:before {
+        border-color: #fdf6c4;
+        border-left-color: transparent;
+      }
+      app-toolbar li.iron-selected a:after {
+        border-color: #fdf6c4;
+      }
+      app-toolbar li.iron-selected a {
+        background-color: #fdf6c4;
+        color: var(--app-accent-color);
+      }
+
+
+      app-toolbar li[disabled] a:before {
+        border-color: var(--app-buttons-disabled);
+      }
+      app-toolbar li[disabled] a:after {
+        border-color: var(--app-buttons-disabled);
+      }
+      app-toolbar li[disabled] a {
+        background-color: var(--app-buttons-disabled);
+        color: var(--app-accent-color);
+      }
+
+
+      app-drawer iron-icon {
+        margin-right: 20px;
+      }
+
+      @media(max-width: 920px) {
+        paper-icon-button[icon="menu"] {
+          display: block;
+        }
+
+        app-toolbar li.iron-selected a:after {
+          border-color: transparent;
+          border-top: 32px solid transparent;
+          border-bottom: 32px solid transparent;
+          border-left: 20px solid #fdf6c4;
+          border-right: 32px solid transparent;
+        }
+        app-toolbar li:not(.iron-selected) {
+          display: none;
+        }
+        app-toolbar li.iron-selected a {
+          padding-left: 20px;
+        }
+        app-toolbar li[name='summary'].iron-selected a {
+          content: 'Summary'
+        }
+      }
+      @media(min-width: 921px) {
+        app-toolbar > div {
+          margin-left: 12px;
+        }
+        app-toolbar li[name='summary'] span {
+          display: none;
+        }
+      }
+      app-drawer a.iron-selected {
+        color: var(--app-accent-color);
+        font-weight: bold;
+      }
+    </style>
+
+    <app-location
+        route="{{route}}"
+        url-space-regex="^[[rootPath]]">
+    </app-location>
+
+    <app-route
+        route="{{route}}"
+        pattern="[[rootPath]]:page"
+        data="{{routeData}}"
+        tail="{{subroute}}">
+    </app-route>
+
+    <app-drawer-layout narrow="{{narrow}}" force-narrow>
+      <app-drawer id="drawer" slot="drawer" swipe-open="[[narrow]]">
+        <h1>IvoryShield</h1>
+        <div>
+          <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
+            <a name="accounts" href="[[rootPath]]accounts"><iron-icon icon="account-balance"></iron-icon>Accounts</a>
+            <a name="configurers" href="[[rootPath]]configurers"><iron-icon icon="build"></iron-icon>Configurers</a>
+            <a name="validators" href="[[rootPath]]validators"><iron-icon icon="check-circle"></iron-icon>Validators</a>
+            <a name="deploy" href="[[rootPath]]deploy"><iron-icon icon="cloud-upload"></iron-icon>Deploy</a>
+            <a name="summary" href="[[rootPath]]summary"><iron-icon icon="verified-user"></iron-icon>Summary</a>
+          </iron-selector>
+        </div>
+        <div id="logoDrawer"></div>
+      </app-drawer>
+      <!-- Main content -->
+      <app-header-layout>
+        <app-header slot="header">
+          <app-toolbar>
+            <paper-icon-button icon="menu" on-tap="_toggleMenu"></paper-icon-button>
+            <div>IvoryShield</div>
+            <ul>
+              <iron-selector attr-for-selected="name" selected="[[page]]">
+                <li name="accounts"><a href="[[rootPath]]accounts"><iron-icon icon="account-balance"></iron-icon>Accounts</a></li>
+                <li name="configurers"><a href="[[rootPath]]configurers"><iron-icon icon="build"></iron-icon>Configurers</a></li>
+                <li name="validators"><a href="[[rootPath]]validators"><iron-icon icon="check-circle"></iron-icon>Validators</a></li>
+                <li name="deploy"><a href="[[rootPath]]deploy"><iron-icon icon="cloud-upload"></iron-icon>Deploy</a></li>
+                <li name="summary"><a href="[[rootPath]]summary"><iron-icon icon="verified-user"></iron-icon><span>Summary</span></a></li>
+              </iron-selector>
+              <div id="logo"></div>
+            </ul>
+          </app-toolbar>
+        </app-header>
+        <div>
+          <iron-pages
+              selected="[[page]]"
+              attr-for-selected="name"
+              fallback-selection="view404"
+              role="main">
+            <ivoryshield-accounts url="[[url]]" name="accounts"></ivoryshield-accounts>
+            <ivoryshield-configurers url="[[url]]" name="configurers"></ivoryshield-configurers>
+            <ivoryshield-validators url="[[url]]" name="validators"></ivoryshield-validators>
+            <ivoryshield-deploy url="[[url]]" name="deploy"></ivoryshield-deploy>
+            <ivoryshield-summary url="[[url]]" name="summary"></ivoryshield-summary>
+            <ivoryshield-view404 url="[[url]]" name="view404"></ivoryshield-view404>
+          </iron-pages>
+        </div>
+      </app-header-layout>
+    </app-drawer-layout>
+
+  </template>
+
+  <script>
+    // Gesture events like tap and track generated from touch will not be
+    // preventable, allowing for better scrolling performance.
+    Polymer.setPassiveTouchGestures(true);
+
+    class IvoryShieldConfigurator extends Polymer.Element {
+      static get is() { return 'ivoryshield-app'; }
+
+      static get properties() {
+        return {
+          url: {
+            type: String,
+            value: 'http://localhost:18181/api'
+          },
+          page: {
+            type: String,
+            reflectToAttribute: true,
+            observer: '_pageChanged',
+          },
+          currentTab: {
+            type: String,
+            value: 'accounts'
+          },
+          routeData: Object,
+          subroute: Object,
+          // This shouldn't be neccessary, but the Analyzer isn't picking up
+          // Polymer.Element#rootPath
+          rootPath: String,
+        };
+      }
+
+      static get observers() {
+        return [
+          '_routePageChanged(routeData.page)',
+          '_routeChanged(route)',
+        ];
+      }
+
+      _toggleMenu() {
+        this.$.drawer.toggle();
+      }
+
+      _titleFor(tab) {
+        console.log(tab);
+        if (tab === 'accounts') {
+          return 'AWS Accounts';
+        } else if (tab === 'configurers') {
+          return 'Configurers';
+        } else if (tab === 'validators') {
+          return 'Validators';
+        } else if (tab === 'deployment') {
+          return 'Deployment';
+        }
+      }
+
+      _routeChanged(route) {
+        console.log(route);
+      }
+
+      _routePageChanged(page) {
+        console.log(page, this.route,  this.routeData);
+        // If no page was found in the route data, page will be an empty string.
+        // Default to 'view1' in that case.
+        this.page = page || 'accounts';
+
+        // Close a non-persistent drawer when the page & route are changed.
+        if (!this.$.drawer.persistent) {
+          this.$.drawer.close();
+        }
+      }
+
+      _pageChanged(page) {
+        console.log('Page is', page);
+        // Load page import on demand. Show 404 page if fails
+        const resolvedPageUrl = this.resolveUrl('ivoryshield-' + page + '.html');
+        Polymer.importHref(
+            resolvedPageUrl,
+            null,
+            this._showPage404.bind(this),
+            true);
+      }
+
+      _showPage404() {
+        this.page = 'view404';
+      }
+    }
+
+    window.customElements.define(IvoryShieldConfigurator.is, IvoryShieldConfigurator);
+  </script>
+</dom-module>
+

@@ -1,0 +1,197 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/iron-icons/notification-icons.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="ivoryshield-accounts">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+      .activeElements {
+        @apply(--layout-horizontal);
+        @apply(--layout-wrap);
+        margin-top: 40px;
+      }
+      .activeElements .card {
+        width: 300px;
+      }
+      .activeElements paper-listbox {
+        width: 100%;
+      }
+      h2 {
+        margin-bottom: 0px;
+      }
+      .details {
+        font-size: 10px;
+      }
+      .creds {
+        @apply(--layout-horizontal);
+        @apply(--layout-around-justified);
+        @apply(--layout-wrap);
+      }
+      #mainAction {
+        @apply(--layout-horizontal);
+        @apply(--layout-center-justified);
+      }
+      .creds paper-input {
+        height: 45px;
+      }
+      .creds > div {
+        width: 300px;
+        margin: 20px;
+      }
+      .creds > div paper-button {
+        float: right;
+        margin-top: 20px;
+      }
+      div[secondary], .details {
+        font-size: 12px;
+        opacity: 0.8;
+        margin-left: 20px;
+      }
+      div[secondary] {
+        font-size: 10px;
+      }
+      paper-item iron-icon {
+        position: absolute;
+        right: 10px;
+      }
+      iron-icon[icon="notification:do-not-disturb"] {
+        color: red;
+      }
+      iron-icon[icon="check"] {
+        color: green;
+      }
+      paper-fab[icon="add"] {
+        position: absolute;
+        right: 50px;
+        margin-top: -40px;
+        --paper-fab-background: var(--app-background-color);
+      }
+      paper-fab[organization] {
+        --paper-fab-background: white;
+      }
+    </style>
+    <iron-ajax id="ajax" handle-as="json" content-type="application/json"></iron-ajax>
+    <iron-ajax url="[[url]]/accounts" handle-as="json" last-response="{{accounts}}" auto></iron-ajax>
+    <iron-ajax url="[[url]]/credentials" handle-as="json" last-response="{{credentials}}" auto></iron-ajax>
+    <div class="card">
+      <h1>Accounts</h1>
+      <p>You should see here all the accoutirnts, we can see through your organization.</p>
+      <div class="creds">
+        <div>
+          Credentials
+          <paper-input label="Access Key" value="{{credentials.accessKey}}"></paper-input>
+          <paper-input label="Secret Key" type="password" value="{{credentials.secretKey}}"></paper-input>
+        </div>
+        <div>
+          Cross Account Role
+          <paper-input label="Role ARN" value="{{credentials.role}}"></paper-input>
+          <paper-input label="External ID" value="{{credentials.externalId}}"></paper-input>
+        </div>
+      </div>
+      <div id="mainAction">
+        <paper-button class="primary" on-tap="test">Test</paper-button>
+        <paper-button class="primary" on-tap="save">Save</paper-button>
+      </div>
+    </div>
+    <div class="activeElements card">
+      <paper-fab icon="add" disabled="[[useOrganization]]"></paper-fab>
+      <paper-fab src="[[organizationIcon]]" on-tap="_toggleOrganization" organization></paper-fab>
+      <paper-listbox>
+      <template is="dom-repeat" items="[[accounts]]">
+        <paper-item>
+          <paper-item-body two-line>
+            <div>[[item.Name]]<span class="details">([[item.Id]])</span></div>
+            <div secondary>[[item.AssumeRoleError.message]]</div>
+          </paper-item-body>
+          <template is="dom-if" if="[[item.AssumeRoleSuccessful]]">
+            <iron-icon icon="done"></iron-icon>
+          </template>
+          <template is="dom-if" if="[[!item.AssumeRoleSuccessful]]">
+            <iron-icon icon="notification:do-not-disturb"></iron-icon>
+          </template>
+        </paper-item>
+      </template>
+      </paper-listbox>
+      <!--
+      <div class="card">
+        <h2 title="[[item.Arn]]">[[item.Name]]</h2>
+        <div class="details">
+          ID: [[item.Id]]
+        </div>
+      </div>
+      -->
+    </div>
+  </template>
+
+  <script>
+    class IvoryShieldAccounts extends Polymer.Element {
+      static get properties() {
+        return {
+          credentials: {
+            type: Object,
+            value: {
+              'role': 'OrganizationAccountAccessRole'
+            }
+          },
+          useOrganization: {
+            type: Boolean,
+            value: true
+          },
+          organizationIcon: {
+            type: String,
+            value: 'images/aws-organizations.png'
+          }
+        }
+      }
+      static get is() { return 'ivoryshield-accounts'; }
+      _toggleOrganization() {
+
+      },
+      test() {
+        this.$.ajax.url = this.url + '/accounts/test';
+        this.$.ajax.body = this.credentials;
+        this.$.ajax.method = 'PUT';
+        this.$.ajax.generateRequest().completes.then( () => {
+
+        }).catch ((err)=> {
+
+        });
+      }
+      save() {
+        this.$.ajax.url = this.url + '/credentials';
+        this.$.ajax.body = this.credentials;
+        this.$.ajax.method = 'PUT';
+        this.$.ajax.generateRequest().completes.then( () => {
+
+        }).catch ((err)=> {
+
+        });
+      }
+    }
+
+    window.customElements.define(IvoryShieldAccounts.is, IvoryShieldAccounts);
+  </script>
+</dom-module>
+

@@ -1,0 +1,22 @@
+{
+  "name": "ivoryshield",
+  "version": "1.0.0",
+  "description": "Protect your cloud and automate it",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/ivoryshield.git"
+  },
+  "author": "loopingz@loopingz.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/loopingz/ivoryshield/issues"
+  },
+  "homepage": "https://github.com/loopingz/ivoryshield#readme",
+  "dependencies": {
+    "webda-shell": "^0.5.2"
+  }
+}
