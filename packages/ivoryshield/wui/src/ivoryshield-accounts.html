@@ -14,6 +14,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
@@ -49,7 +50,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         @apply(--layout-around-justified);
         @apply(--layout-wrap);
       }
-      #mainAction {
+      .title {
+        width: 100%;
+      }
+      #mainAction, .title {
         @apply(--layout-horizontal);
         @apply(--layout-center-justified);
       }
@@ -76,7 +80,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         position: absolute;
         right: 10px;
       }
-      iron-icon[icon="notification:do-not-disturb"] {
+      iron-icon[icon="cloud-off"] {
         color: red;
       }
       iron-icon[icon="check"] {
@@ -88,21 +92,61 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-top: -40px;
         --paper-fab-background: var(--app-background-color);
       }
+      paper-fab[disabled] {
+        display: none;
+      }
       paper-fab[organization] {
         --paper-fab-background: white;
+        position: absolute;
+        margin-top: -40px;
+      }
+      paper-button iron-icon {
+        margin-right: 10px;
+      }
+      #mainAction paper-button {
+        margin-right: 10px;
+        margin-left: 10px;
+      }
+      paper-icon-button[icon="delete"] {
+        position: absolute;
+        right: 50px;
+        display: none;
+        transition: color 0.5s;
+      }
+      paper-icon-button[icon="delete"]:hover {
+        color: red;
+      }
+      paper-item.iron-selected paper-icon-button[icon="delete"] {
+        display: block;
+      }
+      paper-item {
+        box-sizing: border-box;
+        --paper-item-selected: {
+          border-left: 4px var(--app-background-color) solid;
+        };
+        --paper-item-focused: {
+          background: none;
+        };
+        --paper-item-focused-before: {
+          opacity: 0.20;
+          background: var(--app-background-color);
+        };
       }
     </style>
     <iron-ajax id="ajax" handle-as="json" content-type="application/json"></iron-ajax>
-    <iron-ajax url="[[url]]/accounts" handle-as="json" last-response="{{accounts}}" auto></iron-ajax>
+    <iron-ajax id="accountsAjax" url="[[url]]/accounts" handle-as="json" last-response="{{accounts}}" auto></iron-ajax>
+    <iron-ajax url="[[url]]/me" handle-as="json" last-response="{{me}}" auto></iron-ajax>
     <iron-ajax url="[[url]]/credentials" handle-as="json" last-response="{{credentials}}" auto></iron-ajax>
     <div class="card">
-      <h1>Accounts</h1>
-      <p>You should see here all the accoutirnts, we can see through your organization.</p>
+      <div class="title">
+        <h2>Credentials</h2>
+      </div>
+      <p>You should see here all the accounts, we can see through your organization.</p>
       <div class="creds">
         <div>
           Credentials
-          <paper-input label="Access Key" value="{{credentials.accessKey}}"></paper-input>
-          <paper-input label="Secret Key" type="password" value="{{credentials.secretKey}}"></paper-input>
+          <paper-input label="Access Key" value="{{credentials.accessKeyId}}"></paper-input>
+          <paper-input label="Secret Key" type="password" value="{{credentials.secretAccessKey}}"></paper-input>
         </div>
         <div>
           Cross Account Role
@@ -111,13 +155,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div id="mainAction">
-        <paper-button class="primary" on-tap="test">Test</paper-button>
-        <paper-button class="primary" on-tap="save">Save</paper-button>
+        <paper-button class="primary" on-tap="test"><iron-icon icon="done-all"></iron-icon>Test</paper-button>
+        <paper-button class="primary" on-tap="save"><iron-icon icon="save"></iron-icon>Save</paper-button>
       </div>
     </div>
     <div class="activeElements card">
-      <paper-fab icon="add" disabled="[[useOrganization]]"></paper-fab>
+      <paper-fab icon="add" disabled="[[useOrganization]]" on-tap="_addAccount"></paper-fab>
       <paper-fab src="[[organizationIcon]]" on-tap="_toggleOrganization" organization></paper-fab>
+      <div class="title">
+        <h2>[[title]]</h2>
+      </div>
+      <template is="dom-if" if="[[displayHelp]]">
+        Here is where we explain how to setup either Organization or Manual accounts
+      </template>
       <paper-listbox>
       <template is="dom-repeat" items="[[accounts]]">
         <paper-item>
@@ -125,23 +175,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <div>[[item.Name]]<span class="details">([[item.Id]])</span></div>
             <div secondary>[[item.AssumeRoleError.message]]</div>
           </paper-item-body>
+          <template is="dom-if" if="[[!useOrganization]]">
+            <paper-icon-button icon="delete" on-tap="_deleteAccount" account="[[item]]"></paper-icon-button>
+          </template>
           <template is="dom-if" if="[[item.AssumeRoleSuccessful]]">
-            <iron-icon icon="done"></iron-icon>
+            <iron-icon icon="cloud-done"></iron-icon>
           </template>
           <template is="dom-if" if="[[!item.AssumeRoleSuccessful]]">
-            <iron-icon icon="notification:do-not-disturb"></iron-icon>
+            <iron-icon icon="cloud-off"></iron-icon>
           </template>
         </paper-item>
       </template>
       </paper-listbox>
-      <!--
-      <div class="card">
-        <h2 title="[[item.Arn]]">[[item.Name]]</h2>
-        <div class="details">
-          ID: [[item.Id]]
-        </div>
-      </div>
-      -->
     </div>
   </template>
 
@@ -162,15 +207,77 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           organizationIcon: {
             type: String,
             value: 'images/aws-organizations.png'
+          },
+          title: {
+            type: String,
+            value: 'Organization'
+          },
+          me: {
+            type: Object,
+            value: {
+              useOrganization: true
+            },
+            observer: '_updateMe'
           }
         }
       }
       static get is() { return 'ivoryshield-accounts'; }
-      _toggleOrganization() {
-
-      },
+      _updateMe() {
+        if (this.me.useOrganization !== this.useOrganization) {
+          this._toggleOrganization(null, null, true, true);
+        }
+      }
+      validateOrganizationMigration() {
+        this._toggleOrganization(null, null, true, false).then( () => {
+          this.$.accountsAjax.generateRequest();
+        });
+      }
+      _deleteAccount(item) {
+        this.splice('accounts', item.model.index, 1);
+        this.saveAccounts();
+      }
+      _addAccount() {
+        this.dispatchEvent(new CustomEvent('OpenAddAccount', {detail : {}, bubble: true, composed : true}));
+      }
+      addNewAccount(name, id) {
+        if (!this.accounts) {
+          this.accounts = [];
+        }
+        this.push('accounts',{'Name': name,'Id': id});
+        this.saveAccounts();
+      }
+      _toggleOrganization(evt, originEvt, force, noSave) {
+        if (!this.useOrganization && this.accounts.length && !force) {
+          this.dispatchEvent(new CustomEvent('ConfirmToOrganization', {detail : {}, bubble: true, composed : true}));
+          return;
+        }
+        this.useOrganization = !this.useOrganization;
+        if (this.useOrganization) {
+          this.title = 'Organization';
+          this.organizationIcon = 'images/aws-organizations.png';
+        } else {
+          this.title = 'Manual account listing';
+          this.organizationIcon = 'images/aws-organizations-grey.png';
+        }
+        if (!noSave) {
+          this.$.ajax.url = this.url + '/organization/' + (this.useOrganization ? 'enable' : 'disable');
+          this.$.ajax.body = {};
+          this.$.ajax.method = 'PUT';
+          return this.$.ajax.generateRequest().promise;
+        }
+      }
       test() {
         this.$.ajax.url = this.url + '/accounts/test';
+        this.$.ajax.body = this.credentials;
+        this.$.ajax.method = 'PUT';
+        this.$.ajax.generateRequest().completes.then( (res) => {
+          this.accounts = res.response;
+        }).catch ((err)=> {
+
+        });
+      }
+      save() {
+        this.$.ajax.url = this.url + '/credentials';
         this.$.ajax.body = this.credentials;
         this.$.ajax.method = 'PUT';
         this.$.ajax.generateRequest().completes.then( () => {
@@ -179,9 +286,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         });
       }
-      save() {
-        this.$.ajax.url = this.url + '/credentials';
-        this.$.ajax.body = this.credentials;
+      saveAccounts() {
+        this.$.ajax.url = this.url + '/accounts';
+        this.$.ajax.body = this.accounts;
         this.$.ajax.method = 'PUT';
         this.$.ajax.generateRequest().completes.then( () => {
 

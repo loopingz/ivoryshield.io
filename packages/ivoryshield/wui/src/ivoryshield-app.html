@@ -365,7 +365,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               attr-for-selected="name"
               fallback-selection="view404"
               role="main">
-            <ivoryshield-accounts url="[[url]]" name="accounts"></ivoryshield-accounts>
+            <ivoryshield-accounts id="accounts" url="[[url]]" name="accounts"></ivoryshield-accounts>
             <ivoryshield-configurers url="[[url]]" name="configurers"></ivoryshield-configurers>
             <ivoryshield-validators url="[[url]]" name="validators"></ivoryshield-validators>
             <ivoryshield-deploy url="[[url]]" name="deploy"></ivoryshield-deploy>
@@ -376,6 +376,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </app-header-layout>
     </app-drawer-layout>
 
+    <paper-dialog id="addAccountDialog" modal>
+      <h2>Add an account</h2>
+      <paper-input label="Account Name" value="{{newAccountName}}"></paper-input>
+      <paper-input label="Account Id" value="{{newAccountId}}" allowed-pattern="[0-9]"></paper-input>
+      <div class="buttons"><paper-button dialog-dismiss>Cancel</paper-button><paper-button class="primary" dialog-confirm on-tap="_addAccountForm">Add this account</paper-button></div>
+    </paper-dialog>
+    <paper-dialog id="confirm" modal>
+      <h2>Reset all manual accounts</h2>
+      <div>
+        Activating the AWS Organization will remove all your manual accounts
+      </div>
+      <div class="buttons"><paper-button dialog-dismiss>Cancel</paper-button><paper-button class="primary" dialog-confirm on-tap="_confirmOrganization">Move to AWS Organization</paper-button></div>
+    </paper-dialog>
   </template>
 
   <script>
@@ -414,6 +427,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           '_routePageChanged(routeData.page)',
           '_routeChanged(route)',
         ];
+      }
+
+      ready() {
+        super.ready();
+        this.addEventListener('OpenAddAccount', () => {
+          console.log('OpenAddAccount received');
+          this.$.addAccountDialog.open();
+        });
+        this.addEventListener('ConfirmToOrganization', () => {
+          console.log('ConfirmToOrganization received');
+          this.$.confirm.open();
+        });
+      }
+
+      _confirmOrganization() {
+        this.$.accounts.validateOrganizationMigration();
+      }
+
+      _addAccountForm() {
+        this.$.accounts.addNewAccount(this.newAccountName, this.newAccountId);
       }
 
       _toggleMenu() {
