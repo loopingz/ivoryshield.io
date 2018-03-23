@@ -105,7 +105,7 @@ const AWSServiceMixIn = Sup => class extends Sup {
               DurationSeconds: 3600,
               ExternalId: this._params.externalId,
               RoleArn: 'arn:aws:iam::' + actNum + ':role/' + this._params["x-account-role"],
-              RoleSessionName: 'automated-checks'
+              RoleSessionName: 'ivoryshield-session'
             }).promise().then( (tok) => {
               params = {};
               params.accessKeyId = tok.Credentials.AccessKeyId;

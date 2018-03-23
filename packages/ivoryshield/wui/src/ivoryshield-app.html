@@ -19,6 +19,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/app-route/app-route.html">
 <link rel="import" href="../bower_components/paper-tabs/paper-tabs.html">
 <link rel="import" href="../bower_components/paper-tabs/paper-tab.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-icons/iron-icons.html">
@@ -66,7 +67,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       .drawer-list a {
         display: block;
-        padding: 0 16px;
+        padding: 4px 16px;
         text-decoration: none;
         color: var(--app-secondary-color);
         line-height: 40px;
@@ -313,6 +314,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         color: var(--app-accent-color);
         font-weight: bold;
       }
+      #bottomNavigation {
+        @apply(--layout-horizontal);
+        @apply(--layout-justified);
+        padding-right: 30px;
+        padding-left: 30px;
+        margin-bottom: 30px;
+      }
+      #bottomNavigation paper-button {
+        cursor: pointer;
+      }
     </style>
 
     <app-location
@@ -372,6 +383,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <ivoryshield-summary url="[[url]]" name="summary"></ivoryshield-summary>
             <ivoryshield-view404 url="[[url]]" name="view404"></ivoryshield-view404>
           </iron-pages>
+          <div id="bottomNavigation">
+            <paper-button on-tap="_prevStep" id="prevStepButton"><iron-icon icon="chevron-left"></iron-icon>Previous Step</paper-button>
+            <paper-button on-tap="_nextStep" id="nextStepButton">Next Step<iron-icon icon="chevron-right"></iron-icon></paper-button>
+          </div>
         </div>
       </app-header-layout>
     </app-drawer-layout>
@@ -419,6 +434,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // This shouldn't be neccessary, but the Analyzer isn't picking up
           // Polymer.Element#rootPath
           rootPath: String,
+          navs: {
+            type: Array,
+            value: ['accounts', 'configurers', 'validators', 'deploy', 'summary']
+          }
         };
       }
 
@@ -432,13 +451,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ready() {
         super.ready();
         this.addEventListener('OpenAddAccount', () => {
-          console.log('OpenAddAccount received');
           this.$.addAccountDialog.open();
         });
         this.addEventListener('ConfirmToOrganization', () => {
-          console.log('ConfirmToOrganization received');
           this.$.confirm.open();
         });
+      }
+
+      _nextStep() {
+        this.set('route.path', '/' + this.navs[this.navs.indexOf(this.page) + 1]);
+      }
+
+      _prevStep() {
+        this.set('route.path', '/' + this.navs[this.navs.indexOf(this.page) - 1]);
       }
 
       _confirmOrganization() {
@@ -454,7 +479,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       _titleFor(tab) {
-        console.log(tab);
         if (tab === 'accounts') {
           return 'AWS Accounts';
         } else if (tab === 'configurers') {
@@ -466,12 +490,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
 
-      _routeChanged(route) {
-        console.log(route);
-      }
-
       _routePageChanged(page) {
-        console.log(page, this.route,  this.routeData);
+        let navIndex = this.navs.indexOf(page);
+        if (navIndex <= 0) {
+          this.$.prevStepButton.style.visibility = 'hidden';
+        } else {
+          this.$.prevStepButton.style.visibility = 'visible';
+        }
+        if (navIndex + 1 >= this.navs.length) {
+          this.$.nextStepButton.style.visibility = 'hidden';
+        } else {
+          this.$.nextStepButton.style.visibility = 'visible';
+        }
         // If no page was found in the route data, page will be an empty string.
         // Default to 'view1' in that case.
         this.page = page || 'accounts';
@@ -483,7 +513,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       _pageChanged(page) {
-        console.log('Page is', page);
         // Load page import on demand. Show 404 page if fails
         const resolvedPageUrl = this.resolveUrl('ivoryshield-' + page + '.html');
         Polymer.importHref(
