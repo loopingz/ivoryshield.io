@@ -15,6 +15,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <template>
     <style>
 
+      paper-item {
+        box-sizing: border-box;
+        --paper-item-selected: {
+          border-left: 4px var(--app-background-color) solid;
+        };
+        --paper-item-focused: {
+          background: none;
+        };
+        --paper-item-focused-before: {
+          opacity: 0.20;
+          background: var(--app-background-color);
+        };
+      }
+      h2 {
+        text-align: center;
+        width: 100%;
+      }
       .card {
         margin: 24px;
         padding: 16px;

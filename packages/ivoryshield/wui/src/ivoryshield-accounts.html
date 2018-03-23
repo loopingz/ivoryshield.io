@@ -82,7 +82,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       iron-icon[icon="cloud-off"] {
         color: red;
       }
-      iron-icon[icon="check"] {
+      iron-icon[icon="cloud-done"] {
         color: green;
       }
       paper-fab[icon="add"] {
@@ -117,19 +117,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
       paper-item.iron-selected paper-icon-button[icon="delete"] {
         display: block;
-      }
-      paper-item {
-        box-sizing: border-box;
-        --paper-item-selected: {
-          border-left: 4px var(--app-background-color) solid;
-        };
-        --paper-item-focused: {
-          background: none;
-        };
-        --paper-item-focused-before: {
-          opacity: 0.20;
-          background: var(--app-background-color);
-        };
       }
     </style>
     <iron-ajax id="ajax" handle-as="json" content-type="application/json"></iron-ajax>

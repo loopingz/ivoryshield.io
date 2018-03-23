@@ -9,6 +9,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="ivoryshield-deploy">
@@ -19,19 +20,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         padding: 10px;
       }
+      paper-input iron-icon {
+        margin-right: 10px;
+      }
     </style>
 
     <div class="card">
-      <div class="circle">1</div>
-      <h1>Deploy</h1>
-      <p>Ut labores minimum atomorum pro. Laudem tibique ut has.</p>
-      <p>Lorem ipsum dolor sit amet, per in nusquam nominavi periculis, sit elit oportere ea.Lorem ipsum dolor sit amet, per in nusquam nominavi periculis, sit elit oportere ea.Cu mei vide viris gloriatur, at populo eripuit sit.</p>
+      <h2>Deploy</h2>
+      <paper-input style="width: 120px" label="Cron Check Interval" value="{{cronInterval}}" allowed-pattern="[0-9]">
+        <iron-icon icon="alarm" slot="prefix"></iron-icon>
+        <div slot="suffix"> min</div>
+      </paper-input>
+      <p>This will deploy a Fargate service, two task definition and a Lambda function to start a Fargate task every {{cronInterval}} min.</p>
+      <p>All your configurers will be called every {{cronInterval}} min</p>
     </div>
   </template>
 
   <script>
     class IvoryShieldDeploy extends Polymer.Element {
       static get is() { return 'ivoryshield-deploy'; }
+      static get properties() {
+        return {
+          cronInterval: {
+            type: Number,
+            value: 240
+          }
+        }
+      }
     }
 
     window.customElements.define(IvoryShieldDeploy.is, IvoryShieldDeploy);
