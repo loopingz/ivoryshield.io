@@ -44,7 +44,7 @@ module.exports = class CronCheckerService extends AWSService(Service) {
       console.log('Cannot find resources mapping for', type);
       return Promise.resolve();
     }
-    return this._validatorService.handleResource(aws, resourceObject).then( (metrics) => {
+    return this._validatorService.handleResource(aws, resourceObject, account).then( (metrics) => {
       return this._handleMetrics(metrics, account);
     }).catch ((err) => {
       console.log('Cannot process', resources, err);

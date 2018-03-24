@@ -21,16 +21,17 @@ module.exports = class ValidatorService extends Service {
     let resources = Resource.fromEvent(aws, evt);
     let promises = [];
     resources.forEach( (resource) => {
-      promises.push(this.handleResource(aws, resource));
+      promises.push(this.handleResource(aws, resource, account));
     });
     return Promise.all(promises);
   }
 
-  handleResource(aws, resource) {
+  handleResource(aws, resource, account) {
     return resource.load().then( () => {
       let metrics = {};
       let promise = Promise.resolve();
       this._validators.forEach( (validator) => {
+        if (!validator.isEnableOn(aws.config.region, account)) return;
         promise = promise.then( () => {
           return validator.validate(aws, resource).then( (met) => {
             for (let i in met) {

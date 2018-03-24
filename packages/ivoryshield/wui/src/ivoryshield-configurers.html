@@ -9,7 +9,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="shared-styles.html">
+<link rel="import" href="ivoryshield-modda.html">
 
 <dom-module id="ivoryshield-configurers">
   <template>
@@ -19,18 +22,112 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         padding: 10px;
       }
+      .card {
+        max-width: 300px;
+      }
+      .container {
+        @apply(--layout-horizontal);
+        @apply(--layout-wrap);
+      }
     </style>
-
-    <div class="card">
-      <h2>Configurers</h2>
-      <p>Ut labores minimum atomorum pro. Laudem tibique ut has.</p>
-      <p>Lorem ipsum dolor sit amet, per in nusquam nominavi periculis, sit elit oportere ea.Lorem ipsum dolor sit amet, per in nusquam nominavi periculis, sit elit oportere ea.Cu mei vide viris gloriatur, at populo eripuit sit.</p>
+    <h2>Active Configurers</h2>
+    <div class="container">
+      <template is="dom-repeat" items="[[configurers]]" filter="isActive">
+        <ivoryshield-modda modda="{{item}}"></ivoryshield-modda>
+      </template>
+    </div>
+    <h2>Available Configurers</h2>
+    <div class="container">
+      <template is="dom-repeat" items="[[configurers]]" filter="isInactive">
+        <ivoryshield-modda modda="{{item}}"></ivoryshield-modda>
+      </template>
     </div>
   </template>
 
   <script>
     class IvoryShieldConfigurers extends Polymer.Element {
       static get is() { return 'ivoryshield-configurers'; }
+      static get properties() {
+        return {
+          configurers: {
+            type: Array,
+            value: []
+          },
+          activeConfigurers: {
+            type: Array,
+            value: []
+          },
+          config: {
+            type: Object,
+            value: {
+            },
+            observer: '_updateConfig'
+          },
+          editMode: {
+            type: Boolean,
+            value: true
+          },
+          schema: {
+            type: Object,
+            value: {
+              "title": "Person",
+              "type": "object",
+              "properties": {
+                "firstName": {
+                  "type": "string"
+                },
+                "lastName": {
+                  "type": "string"
+                },
+                "age": {
+                  "description": "Age in years",
+                  "title": "Age",
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "disable": {
+                  "type": "boolean",
+                  "title": "Activate something"
+                },
+                "addons": {
+                  "type": "object",
+                  "properties": {
+                    "subFirstName": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "subsubFirstName": {
+                            "type": "string"
+                          },
+                          "subsubLastName": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "required": ["firstName", "lastName"]
+            }
+          }
+        }
+      }
+
+      isInactive(item) {
+        console.log('item', item);
+        return !item.enable;
+      }
+      isActive(item) {
+        return item.enable;
+      }
+      _updateConfig() {
+        console.log('Config is', this.config);
+      }
     }
 
     window.customElements.define(IvoryShieldConfigurers.is, IvoryShieldConfigurers);

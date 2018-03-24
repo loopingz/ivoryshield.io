@@ -27,6 +27,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-selector/iron-selector.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../bower_components/webda-core/webda-core.html">
+
+<link rel="import" href="../bower_components/webda-model-schema/webda-model-boolean.html">
+<link rel="import" href="../bower_components/webda-model-schema/webda-model-string.html">
+<link rel="import" href="../bower_components/webda-model-schema/webda-model-array.html">
+<link rel="import" href="../bower_components/webda-model-schema/webda-model-number.html">
+<link rel="import" href="../bower_components/webda-model-schema/webda-model-object.html">
 <link rel="import" href="my-icons.html">
 
 <link rel="lazy-import" href="ivoryshield-accounts.html">
@@ -324,6 +331,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       #bottomNavigation paper-button {
         cursor: pointer;
       }
+      paper-dialog h2 {
+        border-bottom: 1px solid var(--app-background-color);
+        border-top: 0px;
+        margin: 10px 20px;
+      }
     </style>
 
     <app-location
@@ -337,6 +349,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         data="{{routeData}}"
         tail="{{subroute}}">
     </app-route>
+    <webda-core url="[[url]]" no-dev></webda-core>
 
     <app-drawer-layout narrow="{{narrow}}" force-narrow>
       <app-drawer id="drawer" slot="drawer" swipe-open="[[narrow]]">
@@ -377,8 +390,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               fallback-selection="view404"
               role="main">
             <ivoryshield-accounts id="accounts" url="[[url]]" name="accounts"></ivoryshield-accounts>
-            <ivoryshield-configurers url="[[url]]" name="configurers"></ivoryshield-configurers>
-            <ivoryshield-validators url="[[url]]" name="validators"></ivoryshield-validators>
+            <ivoryshield-configurers url="[[url]]" configurers="[[configurers]]" name="configurers"></ivoryshield-configurers>
+            <ivoryshield-validators url="[[url]]" validators="[[validators]]" name="validators"></ivoryshield-validators>
             <ivoryshield-deploy url="[[url]]" name="deploy"></ivoryshield-deploy>
             <ivoryshield-summary url="[[url]]" name="summary"></ivoryshield-summary>
             <ivoryshield-view404 url="[[url]]" name="view404"></ivoryshield-view404>
@@ -404,6 +417,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
       <div class="buttons"><paper-button dialog-dismiss>Cancel</paper-button><paper-button class="primary" dialog-confirm on-tap="_confirmOrganization">Move to AWS Organization</paper-button></div>
     </paper-dialog>
+    <paper-dialog id="confirmDisable" modal>
+      <h2>Disable Service</h2>
+      <div>
+        Disabling the service will reset its configuration.
+      </div>
+      <div class="buttons"><paper-button dialog-dismiss>Cancel</paper-button><paper-button class="primary" dialog-confirm on-tap="">Disable</paper-button></div>
+    </paper-dialog>
+    <paper-dialog id="configureService" modal>
+      <h2>Configuring [[service.label]]</h2>
+      <div>
+        <webda-model-object value="{{service.configuration.value}}" schema="[[service.configuration.schema]]" edit-mode></webda-model-object>
+      </div>
+      <div class="buttons"><paper-button dialog-dismiss>Cancel</paper-button><paper-button class="primary" dialog-confirm on-tap="_saveService">Save</paper-button></div>
+    </paper-dialog>
   </template>
 
   <script>
@@ -418,7 +445,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return {
           url: {
             type: String,
-            value: 'http://localhost:18181/api'
+            value: '/api'
           },
           page: {
             type: String,
@@ -448,6 +475,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         ];
       }
 
+      _saveService() {
+        let body = {
+          uuid: this.service.uuid,
+          configuration: this.service.configuration.value,
+          enable: this.service.enable
+        };
+        if (!this.service._type) {
+          return;
+        }
+        Webda.request(this.service._type, 'PUT', body).then( (res) => {
+          this.refreshConfigurers();
+          this.refreshValidators();
+        });
+      }
+
       ready() {
         super.ready();
         this.addEventListener('OpenAddAccount', () => {
@@ -456,8 +498,48 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.addEventListener('ConfirmToOrganization', () => {
           this.$.confirm.open();
         });
+        this.addEventListener('DisableService', (evt) => {
+          this.service = evt.detail;
+          this.service.enable = false;
+          this._saveService();
+        });
+        this.addEventListener('ConfigureService', (evt) => {
+          this.service = evt.detail;
+          if (!this.service.configuration || !this.service.configuration.schema) {
+            console.log('Save as is, no configuration');
+            this.service.configuration = {value: {}};
+            this._saveService();
+            return;
+          }
+          if (!this.service.configuration.value) {
+            this.service.configuration.value = {};
+          }
+          console.log(this.service.configuration.value);
+          this.$.configureService.open();
+        });
+        this.refreshConfigurers();
+        this.refreshValidators();
       }
-
+      refreshConfigurers() {
+        Webda.request('configurers').then( (res) => {
+          let configs = [];
+          Object.values(res.response).forEach( (info) => {
+            info._type = 'configurers';
+            configs.push(info);
+          });
+          this.configurers = configs;
+        });
+      }
+      refreshValidators() {
+        Webda.request('validators').then( (res) => {
+          let configs = [];
+          Object.values(res.response).forEach( (info) => {
+            info._type = 'validators';
+            configs.push(info);
+          });
+          this.validators = configs;
+        });
+      }
       _nextStep() {
         this.set('route.path', '/' + this.navs[this.navs.indexOf(this.page) + 1]);
       }

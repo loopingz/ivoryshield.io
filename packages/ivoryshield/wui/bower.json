@@ -23,7 +23,9 @@
     "paper-item": "PolymerElements/paper-item#^2.1.0",
     "paper-listbox": "PolymerElements/paper-listbox#^2.1.0",
     "paper-fab": "PolymerElements/paper-fab#^2.1.0",
-    "paper-dialog": "PolymerElements/paper-dialog#^2.1.1"
+    "paper-dialog": "PolymerElements/paper-dialog#^2.1.1",
+    "webda-model-schema": "^2.0.0",
+    "webda-core": "^0.1.7"
   },
   "resolutions": {
     "polymer": "^2.0.0"

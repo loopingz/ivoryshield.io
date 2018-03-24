@@ -1,0 +1,10 @@
+{
+  "services": {
+    "IvoryShield/CronChecker": "ivoryshield/services/cronchecker",
+    "IvoryShield/CloudTrail": "ivoryshield/services/cloudtrail",
+    "IvoryShield/Counter": "ivoryshield/validators/counter",
+    "IvoryShield/AutoTagCreator": "ivoryshield/validators/autotagcreator",
+    "IvoryShield/CloudTrailSetup": "ivoryshield/configurers/cloudtrail",
+    "IvoryShield/ElkSetup": "ivoryshield/configurers/elk"
+  }
+}

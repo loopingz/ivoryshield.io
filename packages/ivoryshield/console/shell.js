@@ -1,5 +1,7 @@
 const WebdaServer = require("webda-shell/handlers/http");
 const Executor = require("webda/services/executor");
+const Validator = require("../validators/validator");
+const Configurer = require("../configurers/configurer");
 const path = require('path');
 const fs = require('fs');
 const AWSServiceMixIn = require("../services/aws-mixin");
@@ -15,10 +17,61 @@ class ConfigurationService extends AWSServiceMixIn(Executor) {
     this._addRoute('/api/organization/disable', {"method": ["PUT"], "executor": this._name, "_method": this.disableOrganization});
     this._addRoute('/api/accounts/test', {"method": ["PUT"], "executor": this._name, "_method": this.testConnection});
     this._addRoute('/api/me', {"method": ["GET"], "executor": this._name, "_method": this.getMe});
+    this._addRoute('/api/configurers', {"method": ["GET", "PUT"], "executor": this._name, "_method": this._restConfigurers});
+    this._addRoute('/api/validators', {"method": ["GET", "PUT"], "executor": this._name, "_method": this._restValidators});
     this.load();
     this._config.credentials = this._config.credentials || {};
+    this._config.configurers = this._config.configurers || {};
+    this._config.validators = this._config.validators || {};
     this._aws = this._getAWS({region: 'us-east-1', accessKeyId: this._config.credentials.accessKeyId, secretAccessKey: this._config.credentials.secretAccessKey});
     this.reinitClients();
+  }
+
+  getServicesImplementations(type) {
+    let result = {};
+    for (let i in this._webda._services) {
+      // Check if it is a Validator and has Modda
+      if (this._webda._services[i].prototype instanceof type && this._webda._services[i].getModda) {
+        result[i] = this._webda._services[i].getModda();
+      }
+    }
+    return result;
+  }
+
+  _restValidators(ctx) {
+    if (ctx._route._http.method === 'GET') {
+      // Get map of configurers
+      let validators = this.getServicesImplementations(Validator);
+      Object.keys(validators).map((key, index) => {
+        validators[key].enable = this._config.validators[key] !== undefined;
+      });
+      ctx.write(validators);
+    } else if (ctx._route._http.method === 'PUT') {
+      if (ctx.body.enable) {
+        this._config.validators[ctx.body.uuid] = ctx.body.configuration;
+      } else {
+        delete this._config.validators[ctx.body.uuid];
+      }
+      return this.save();
+    }
+  }
+
+  _restConfigurers(ctx) {
+    if (ctx._route._http.method === 'GET') {
+      // Get map of configurers
+      let configurers = this.getServicesImplementations(Configurer);
+      Object.keys(configurers).map((key, index) => {
+        configurers[key].enable = this._config.configurers[key] !== undefined;
+      });
+      ctx.write(configurers);
+    } else if (ctx._route._http.method === 'PUT') {
+      if (ctx.body.enable) {
+        this._config.configurers[ctx.body.uuid] = ctx.body.configuration;
+      } else {
+        delete this._config.configurers[ctx.body.uuid];
+      }
+      return this.save();
+    }
   }
 
   _restAccounts(ctx) {

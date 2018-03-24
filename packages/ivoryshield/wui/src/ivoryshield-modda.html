@@ -1,0 +1,91 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/webda-model-schema/webda-model-boolean.html">
+<link rel="import" href="../bower_components/webda-model-schema/webda-model-string.html">
+<link rel="import" href="../bower_components/webda-model-schema/webda-model-array.html">
+<link rel="import" href="../bower_components/webda-model-schema/webda-model-number.html">
+<link rel="import" href="../bower_components/webda-model-schema/webda-model-object.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="ivoryshield-modda">
+  <template>
+    <style include="shared-styles">
+      .card {
+        max-width: 300px;
+      }
+      .title {
+        font-weight: bold;
+        border-bottom: 1px solid var(--app-background-color);
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+      }
+      .description {
+        font-size: 12px;
+        height: 120px;
+        overflow-y: auto;
+      }
+      .buttons {
+        @apply(--layout-horizontal);
+        @apply(--layout-justified);
+      }
+    </style>
+    <div class="card">
+      <div class="title">[[modda.label]]</div>
+      <div class="description">[[modda.description]]</div>
+      <template is="dom-if" if="[[modda.enable]]">
+        <div class="buttons">
+          <template is="dom-if" if="[[modda.configuration.schema]]">
+            <paper-button on-tap="_configure">Configure</paper-button>
+          </template>
+          <template is="dom-if" if="[[!modda.configuration.schema]]">
+            <div></div>
+          </template>
+          <paper-button on-tap="_toggleEnable">Disable</paper-button>
+        </div>
+      </template>
+      <template is="dom-if" if="[[!modda.enable]]">
+        <div class="buttons">
+          <div></div>
+          <paper-button on-tap="_toggleEnable">Enable</paper-button>
+        </div>
+      </template>
+    </div>
+  </template>
+
+  <script>
+    class IvoryShieldModda extends Polymer.Element {
+      static get is() { return 'ivoryshield-modda'; }
+      static get properties() {
+        return {
+          modda: {
+            type: Object
+          }
+        }
+      }
+      _configure() {
+        this.dispatchEvent(new CustomEvent('ConfigureService', {detail : this.modda, bubble: true, composed : true}));
+      }
+      _toggleEnable() {
+        this.set('modda.enable', !this.modda.enable);
+        if (this.modda.enable) {
+          this._configure();
+        } else {
+          this.dispatchEvent(new CustomEvent('DisableService', {detail : this.modda, bubble: true, composed : true}));
+        }
+      }
+    }
+
+    window.customElements.define(IvoryShieldModda.is, IvoryShieldModda);
+  </script>
+</dom-module>

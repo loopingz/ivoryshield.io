@@ -9,6 +9,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="ivoryshield-modda.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="ivoryshield-validators">
@@ -19,18 +20,45 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         padding: 10px;
       }
+      .card {
+        max-width: 300px;
+      }
+      .container {
+        @apply(--layout-horizontal);
+        @apply(--layout-wrap);
+      }
     </style>
-
-    <div class="card">
-      <h2>Validators</h2>
-      <p>Ut labores minimum atomorum pro. Laudem tibique ut has.</p>
-      <p>Lorem ipsum dolor sit amet, per in nusquam nominavi periculis, sit elit oportere ea.Lorem ipsum dolor sit amet, per in nusquam nominavi periculis, sit elit oportere ea.Cu mei vide viris gloriatur, at populo eripuit sit.</p>
+    <h2>Active Validators</h2>
+    <div class="container">
+      <template is="dom-repeat" items="[[validators]]" filter="isActive">
+        <ivoryshield-modda modda="{{item}}"></ivoryshield-modda>
+      </template>
+    </div>
+    <h2>Available Validators</h2>
+    <div class="container">
+      <template is="dom-repeat" items="[[validators]]" filter="isInactive">
+        <ivoryshield-modda modda="{{item}}"></ivoryshield-modda>
+      </template>
     </div>
   </template>
 
   <script>
     class IvoryShieldValidators extends Polymer.Element {
       static get is() { return 'ivoryshield-validators'; }
+      static get properties() {
+        return {
+          validators: {
+            type: Array,
+            value: []
+          }
+        }
+      }
+      isInactive(item) {
+        return !item.enable;
+      }
+      isActive(item) {
+        return item.enable;
+      }
     }
 
     window.customElements.define(IvoryShieldValidators.is, IvoryShieldValidators);
