@@ -10,6 +10,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="ivoryshield-deploy">
@@ -23,6 +25,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       paper-input iron-icon {
         margin-right: 10px;
       }
+      .buttons {
+        @apply(--layout-horizontal);
+        @apply(--layout-end-justified);
+      }
     </style>
 
     <div class="card">
@@ -33,6 +39,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </paper-input>
       <p>This will deploy a Fargate service, two task definition and a Lambda function to start a Fargate task every {{cronInterval}} min.</p>
       <p>All your configurers will be called every {{cronInterval}} min</p>
+      <p>
+        It will generate 2 ECR repositories and 2 Task definitions :
+        <ul>
+          <li>ivoryshield/cronchecker</li>
+          <li>ivoryshield/cloudtrail</li>
+        </ul>
+      </p>
+      <p>
+        It will generate a Fargate Cluster named ivoryshield, one service ivoryshield-cloudtrail.
+      </p>
+      <p>
+        As Fargate does not handle Scheduled task, we will deploy a basic Lambda function to launch the task every [[cronInterval]] minutes
+      </p>
+      <div class="buttons">
+        <paper-button on-tap="_settings" class="primary"><iron-icon icon="settings"></iron-icon>Advanced</paper-button>
+      </div>
     </div>
   </template>
 
@@ -46,6 +68,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             value: 240
           }
         }
+      }
+      _settings() {
+        this.dispatchEvent(new CustomEvent('DeploymentConfiguration', {detail : {}, bubble: true, composed : true}));
       }
     }
 

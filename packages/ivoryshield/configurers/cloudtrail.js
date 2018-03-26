@@ -16,17 +16,26 @@ module.exports = class CloudTrailSetup extends Configurer {
           type: "object",
           properties: {
             "s3Bucket": {
-              type: "string"
+              type: "string",
+              title: "S3 Bucket for CloudTrail storage"
             },
             "s3BackupBucket": {
-              type: "string"
+              type: "string",
+              title: "S3 Bucket for CloudTrail storage backup"
             },
             "cloudTrailName": {
               type: "string",
-              default: "IvoryShield"
+              default: "IvoryShield",
+              title: "CloudTrail name"
+            },
+            "cloudTrailQueue": {
+              type: "string",
+              default: "IvoryShield",
+              title: "SQS Queue name for S3 events"
             },
             "kmsKeyName": {
-              type: "string"
+              type: "string",
+              title: "KMS Key name for CloudTrail event encryption"
             }
           },
           required: ["s3Bucket", "kmsKeyName"]

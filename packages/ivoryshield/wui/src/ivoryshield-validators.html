@@ -34,7 +34,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <ivoryshield-modda modda="{{item}}"></ivoryshield-modda>
       </template>
     </div>
-    <h2>Available Validators</h2>
+
+    <template is="dom-if" if="[[_hasAvailable(validators)]]">
+      <h2>Available Validators</h2>
+    </template>
     <div class="container">
       <template is="dom-repeat" items="[[validators]]" filter="isInactive">
         <ivoryshield-modda modda="{{item}}"></ivoryshield-modda>
@@ -52,6 +55,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             value: []
           }
         }
+      }
+      _hasAvailable(cfgs) {
+        for ( let i in cfgs) {
+          if (!cfgs[i].enable) {
+            return true;
+          }
+        }
+        return false;
       }
       isInactive(item) {
         return !item.enable;

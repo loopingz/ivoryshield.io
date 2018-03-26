@@ -267,7 +267,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.ajax.body = this.credentials;
         this.$.ajax.method = 'PUT';
         this.$.ajax.generateRequest().completes.then( () => {
-
+          this.dispatchEvent(new CustomEvent('SaveToast', {detail : {}, bubble: true, composed : true}));
         }).catch ((err)=> {
 
         });
@@ -277,7 +277,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.ajax.body = this.accounts;
         this.$.ajax.method = 'PUT';
         this.$.ajax.generateRequest().completes.then( () => {
-
+          this.dispatchEvent(new CustomEvent('SaveToast', {detail : {}, bubble: true, composed : true}));
         }).catch ((err)=> {
 
         });

@@ -19,6 +19,7 @@ class ConfigurationService extends AWSServiceMixIn(Executor) {
     this._addRoute('/api/me', {"method": ["GET"], "executor": this._name, "_method": this.getMe});
     this._addRoute('/api/configurers', {"method": ["GET", "PUT"], "executor": this._name, "_method": this._restConfigurers});
     this._addRoute('/api/validators', {"method": ["GET", "PUT"], "executor": this._name, "_method": this._restValidators});
+    this._addRoute('/api/deployment', {"method": ["GET", "PUT"], "executor": this._name, "_method": this._restDeployment});
     this.load();
     this._config.credentials = this._config.credentials || {};
     this._config.configurers = this._config.configurers || {};
@@ -38,12 +39,23 @@ class ConfigurationService extends AWSServiceMixIn(Executor) {
     return result;
   }
 
+  _restDeployment(ctx) {
+    if (ctx._route._http.method === 'GET') {
+      ctx.write(this._config.deployment || {});
+    } else if (ctx._route._http.method === 'PUT') {
+      this._config.deployment = ctx.body;
+      return this.save();
+    }
+  }
   _restValidators(ctx) {
     if (ctx._route._http.method === 'GET') {
       // Get map of configurers
       let validators = this.getServicesImplementations(Validator);
       Object.keys(validators).map((key, index) => {
         validators[key].enable = this._config.validators[key] !== undefined;
+        if (validators[key].configuration) {
+          validators[key].configuration.value = this._config.validators[key];
+        }
       });
       ctx.write(validators);
     } else if (ctx._route._http.method === 'PUT') {
@@ -62,6 +74,9 @@ class ConfigurationService extends AWSServiceMixIn(Executor) {
       let configurers = this.getServicesImplementations(Configurer);
       Object.keys(configurers).map((key, index) => {
         configurers[key].enable = this._config.configurers[key] !== undefined;
+        if (configurers[key].configuration) {
+          configurers[key].configuration.value = this._config.configurers[key];
+        }
       });
       ctx.write(configurers);
     } else if (ctx._route._http.method === 'PUT') {

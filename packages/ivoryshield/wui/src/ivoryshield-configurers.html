@@ -36,7 +36,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <ivoryshield-modda modda="{{item}}"></ivoryshield-modda>
       </template>
     </div>
-    <h2>Available Configurers</h2>
+    <template is="dom-if" if="[[_hasAvailable(configurers)]]">
+      <h2>Available Configurers</h2>
+    </template>
     <div class="container">
       <template is="dom-repeat" items="[[configurers]]" filter="isInactive">
         <ivoryshield-modda modda="{{item}}"></ivoryshield-modda>
@@ -50,10 +52,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       static get properties() {
         return {
           configurers: {
-            type: Array,
-            value: []
-          },
-          activeConfigurers: {
             type: Array,
             value: []
           },
@@ -116,6 +114,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             }
           }
         }
+      }
+
+      _hasAvailable(cfgs) {
+        for ( let i in cfgs) {
+          if (!cfgs[i].enable) {
+            return true;
+          }
+        }
+        return false;
       }
 
       isInactive(item) {

@@ -17,9 +17,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
 <link rel="import" href="../bower_components/app-route/app-location.html">
 <link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="../bower_components/paper-tabs/paper-tabs.html">
 <link rel="import" href="../bower_components/paper-tabs/paper-tab.html">
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-icons/iron-icons.html">
@@ -34,7 +36,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/webda-model-schema/webda-model-array.html">
 <link rel="import" href="../bower_components/webda-model-schema/webda-model-number.html">
 <link rel="import" href="../bower_components/webda-model-schema/webda-model-object.html">
-<link rel="import" href="my-icons.html">
+<link rel="import" href="shared-styles.html">
 
 <link rel="lazy-import" href="ivoryshield-accounts.html">
 <link rel="lazy-import" href="ivoryshield-configurers.html">
@@ -43,7 +45,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <dom-module id="ivoryshield-app">
   <template>
-    <style include="iron-flex">
+    <style include="iron-flex shared-styles">
       :host {
         --app-primary-color: #4285f4;
         --app-secondary-color: black;
@@ -431,6 +433,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
       <div class="buttons"><paper-button dialog-dismiss>Cancel</paper-button><paper-button class="primary" dialog-confirm on-tap="_saveService">Save</paper-button></div>
     </paper-dialog>
+    <paper-dialog id="deployment" modal>
+      <h2>Deployment configuration</h2>
+      <paper-dialog-scrollable>
+      <div>
+        <webda-model-object value="{{deployment}}" schema="[[deploymentSchema]]" edit-mode></webda-model-object>
+      </div>
+      </paper-dialog-scrollable>
+      <div class="buttons"><paper-button dialog-dismiss>Cancel</paper-button><paper-button class="primary" dialog-confirm on-tap="_saveDeployment">Save</paper-button></div>
+    </paper-dialog>
+    <paper-toast id="toast">Save successful</paper-toast>
   </template>
 
   <script>
@@ -464,15 +476,64 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           navs: {
             type: Array,
             value: ['accounts', 'configurers', 'validators', 'deploy', 'summary']
+          },
+          deployment: {
+            type: Object,
+            value: {}
+          },
+          deploymentSchema: {
+            type: Object,
+            value: {
+              "type": "object",
+              "properties": {
+                "clusterName": {
+                  type: "string",
+                  title: "Fargate Cluster Name",
+                  default: "Ivoryshield"
+                },
+                "subnets": {
+                  type: "string",
+                  title: "Subnets (separated by a comma)"
+                },
+                "cloutrailServiceName": {
+                  type: "string",
+                  title: "CloudTrail Service/Repository Name",
+                  default: "ivoryshield/cloudtrail"
+                },
+                "croncheckServiceName": {
+                  type: "string",
+                  title: "CronCheck Service/Repository Name",
+                  default: "ivoryshield/cron"
+                },
+                "taskRole": {
+                  type: "string",
+                  title: "Task Role ARN"
+                },
+                "securityGroup": {
+                  type: "string",
+                  title: "Security Group"
+                },
+                "cronLauncherLambda": {
+                  type: "string",
+                  title: "Name of Cron Lambda Launcher",
+                  default: "ivoryshield/cronlauncher"
+                }
+              }
+            }
           }
         };
       }
 
       static get observers() {
         return [
-          '_routePageChanged(routeData.page)',
-          '_routeChanged(route)',
+          '_routePageChanged(routeData.page)'
         ];
+      }
+
+      _saveDeployment() {
+        Webda.request('deployment', 'PUT', this.deployment).then( (res) => {
+          this.$.toast.open();
+        });
       }
 
       _saveService() {
@@ -487,6 +548,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         Webda.request(this.service._type, 'PUT', body).then( (res) => {
           this.refreshConfigurers();
           this.refreshValidators();
+          this.$.toast.open();
         });
       }
 
@@ -497,6 +559,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
         this.addEventListener('ConfirmToOrganization', () => {
           this.$.confirm.open();
+        });
+        this.addEventListener('SaveToast', () => {
+          this.$.toast.open();
+        });
+        this.addEventListener('DeploymentConfiguration', () => {
+          this.$.deployment.open();
         });
         this.addEventListener('DisableService', (evt) => {
           this.service = evt.detail;
@@ -514,8 +582,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if (!this.service.configuration.value) {
             this.service.configuration.value = {};
           }
-          console.log(this.service.configuration.value);
           this.$.configureService.open();
+        });
+        Webda.request('deployment').then( (res) => {
+          console.log('deployment should be', res.response);
+          this.deployment = res.response;
         });
         this.refreshConfigurers();
         this.refreshValidators();
