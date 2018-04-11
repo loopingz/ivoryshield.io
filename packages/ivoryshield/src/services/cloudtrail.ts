@@ -1,7 +1,19 @@
-import { AWSServiceMixIn, STS, Webda, Service, AWS } from '../services/aws-mixin';
-import { SQSQueue } from 'webda';
-import { S3 } from 'aws-sdk';
-import { ValidatorService } from './validator';
+import {
+  AWSServiceMixIn,
+  STS,
+  Webda,
+  Service,
+  AWS
+} from '../services/aws-mixin';
+import {
+  SQSQueue
+} from 'webda';
+import {
+  S3
+} from 'aws-sdk';
+import {
+  ValidatorService
+} from './validator';
 const fs = require('fs');
 const moment = require('moment');
 const zlib = require('zlib');
@@ -19,12 +31,14 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
 
   init(config) {
     super.init(config);
-    this._validatorService = <ValidatorService> this.getService('ValidatorService');
+    this._validatorService = < ValidatorService > this.getService('ValidatorService');
     this._aws = this._getAWS();
-    this._s3 = new (this._getAWS()).S3();
+    this._s3 = new(this._getAWS()).S3();
     if (this._params.elasticsearch) {
       console.log('Creating ES client to', this._params.elasticsearch);
-      this._es = new elasticsearch.Client({host: this._params.elasticsearch});
+      this._es = new elasticsearch.Client({
+        host: this._params.elasticsearch
+      });
       this._params.elasticsearchIndex = this._params.elasticsearchIndex || 'logstash-';
     }
   }
@@ -35,12 +49,12 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
 
     this.callback = this.processTrailQueue.bind(this);
     this._workerReceiveMessage();
-    return new Promise( () => {
+    return new Promise(() => {
 
     });
   }
 
-  async install(params : any) {
+  async install(params: any) {
     // Setup Kibana
 
     // Setup all cloudtrails
@@ -65,16 +79,16 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
     evt.timestamp = moment(evt.eventTime).unix();
     let promise = Promise.resolve();
     if (this._es) {
-      promise = this.saveEvent(evt).catch( () => {
+      promise = this.saveEvent(evt).catch(() => {
         console.log('Could not indexed', evt.eventID, evt.eventName);
         return Promise.resolve();
       });
     }
-    return promise.then( () => {
+    return promise.then(() => {
       return this._getAWSForEvent(evt);
-    }).then( (aws) => {
+    }).then((aws) => {
       return this._validatorService.handleEvent(aws, evt, evt.recipientAccountId);
-    }).catch( (err) => {
+    }).catch((err) => {
       if (err.code && err.code.indexOf('NotFound') >= 0) {
         // The resource does not exist anymore
         console.log('Resource vanished', evt.eventID);
@@ -87,13 +101,18 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
   }
 
   processTrailLog(bucket, key) {
-    return this._s3.getObject({Bucket: bucket, Key: key}).promise().then( (s3obj) => {
+    return this._s3.getObject({
+      Bucket: bucket,
+      Key: key
+    }).promise().then((s3obj) => {
       let promises = [];
       let cloudEvents = JSON.parse(zlib.gunzipSync(s3obj.Body)).Records;
-      let promise = PromiseUtil.map(cloudEvents, this.processTrailEvent.bind(this), {concurrency: 10});
+      let promise = PromiseUtil.map(cloudEvents, this.processTrailEvent.bind(this), {
+        concurrency: 10
+      });
       //cloudEvents.forEach( this.processTrailEvent.bind(this) );
       //return Promise.all(promises);
-      promise.then( () => {
+      promise.then(() => {
         this.emit('ProcessedEvents', cloudEvents.length);
         return Promise.resolve();
       });
@@ -101,7 +120,7 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
   }
 
   run() {
-    return this.worker( this.processTrailQueue.bind(this) );
+    return this.worker(this.processTrailQueue.bind(this));
   }
 
   processTrailQueue(s3evt) {
@@ -113,7 +132,7 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
       throw new Error('Unkown S3 event');
     }
     let promises = [];
-    s3evt.Records.forEach( (evt) => {
+    s3evt.Records.forEach((evt) => {
       if (evt.eventName === 'ObjectCreated:Put') {
         let res = rex.exec(evt.s3.object.key);
         if (!res) {
@@ -127,8 +146,8 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
   }
 
   saveEvent(evt) {
-    let esData : any = {};
-    esData.index = this._params.elasticsearchIndex + evt.eventTime.substring(0, 10).replace(new RegExp('-', 'g'),'.');
+    let esData: any = {};
+    esData.index = this._params.elasticsearchIndex + evt.eventTime.substring(0, 10).replace(new RegExp('-', 'g'), '.');
     esData.id = evt.eventID;
     esData.type = 'cloudtrail';
     evt.eventSubtype = evt.eventName.match(/[A-Z][a-z]+/g)[0];
@@ -138,4 +157,3 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
   }
 
 }
-

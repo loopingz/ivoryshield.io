@@ -1,4 +1,6 @@
-import { Resource } from './Resource';
+import {
+  Resource
+} from './Resource';
 
 export class S3Bucket extends Resource {
 
@@ -28,14 +30,16 @@ export class S3Bucket extends Resource {
     if (this._loaded) {
       return Promise.resolve(this);
     }
-    return this._getS3().getBucketTagging({Bucket: this.getId()}).promise().then( (res) => {
+    return this._getS3().getBucketTagging({
+      Bucket: this.getId()
+    }).promise().then((res) => {
       this._loaded = true;
       // Load tags
-      res.TagSet.forEach( (tag) => {
+      res.TagSet.forEach((tag) => {
         this._Tags[tag.Key] = tag.Value;
       });
       return Promise.resolve();
-    }).catch( () => {
+    }).catch(() => {
       // If no tagging
       return Promise.resolve();
     });
@@ -50,14 +54,22 @@ export class S3Bucket extends Resource {
 
   _updateTags() {
     let tagSet = [];
-    Object.keys(this._Tags).forEach( (key) => {
+    Object.keys(this._Tags).forEach((key) => {
       // Cannot update tag starting with aws:
       if (key.startsWith('aws:')) {
         return;
       }
-      tagSet.push({Key: key, Value: this._Tags[key]});
+      tagSet.push({
+        Key: key,
+        Value: this._Tags[key]
+      });
     });
-    return this._getS3().putBucketTagging({Bucket: this.getId(), Tagging: {TagSet: tagSet}}).promise();
+    return this._getS3().putBucketTagging({
+      Bucket: this.getId(),
+      Tagging: {
+        TagSet: tagSet
+      }
+    }).promise();
   }
 
   getTag(tag) {

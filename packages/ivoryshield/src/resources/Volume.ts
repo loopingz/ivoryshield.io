@@ -1,4 +1,6 @@
-import { EC2Resource } from './EC2Resource';
+import {
+  EC2Resource
+} from './EC2Resource';
 
 export class Volume extends EC2Resource {
 

@@ -1,4 +1,6 @@
-import { IAMResource } from './IAMResource';
+import {
+  IAMResource
+} from './IAMResource';
 
 module.exports = class AMI extends IAMResource {
 
@@ -11,23 +13,24 @@ module.exports = class AMI extends IAMResource {
     this.AccessKeys = [];
   }
 
-  static getEventMapper() {
-  }
+  static getEventMapper() {}
 
   getId() {
     return this.UserId || this._id;
- }
+  }
 
   load() {
     if (this._loaded) {
       return Promise.resolve(this);
     }
 
-    return this._getIAM().listAccessKeys({UserName: this.UserName}).promise().then( (res) => {
+    return this._getIAM().listAccessKeys({
+      UserName: this.UserName
+    }).promise().then((res) => {
       // Store the AccessKeys
       this.AccessKeys = res.AccessKeyMetadata;
       let now = new Date().getTime();
-      this.AccessKeys.forEach( (key) => {
+      this.AccessKeys.forEach((key) => {
         key.Age = (now - new Date(key.CreateDate).getTime()) / 86400000;
       });
       return Promise.resolve();

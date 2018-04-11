@@ -1,17 +1,18 @@
-import { EC2Resource } from './EC2Resource';
+import {
+  EC2Resource
+} from './EC2Resource';
 
 export class NetworkInterface extends EC2Resource {
 
   NetworkInterfaceId: string;
   TagSet: any;
 
-  static getEventMapper() {
-  }
+  static getEventMapper() {}
 
   constructor(aws, resources) {
     super(aws, resources);
     if (this.TagSet) {
-      this.TagSet.forEach( (tag) => {
+      this.TagSet.forEach((tag) => {
         this._Tags[tag.Key] = tag.Value;
       });
     }

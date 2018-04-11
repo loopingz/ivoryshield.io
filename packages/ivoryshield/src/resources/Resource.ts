@@ -1,5 +1,5 @@
 const fs = require('fs');
-const jsonpath =  require('jsonpath');
+const jsonpath = require('jsonpath');
 
 export class Resource {
   _AWS: any;
@@ -57,7 +57,7 @@ export class Resource {
   }
 
   toJSON() {
-    let obj : any = {};
+    let obj: any = {};
     for (let i in this) {
       if (i.startsWith('_')) continue;
       obj[i] = this[i];
@@ -68,7 +68,7 @@ export class Resource {
   static fromJson(aws, resources, type) {
     if (!Resource._types) {
       Resource._types = {};
-      fs.readdirSync(__dirname).forEach( (file) => {
+      fs.readdirSync(__dirname).forEach((file) => {
         if (file === 'Resource.js') return;
         Resource._types[file.split('.')[0]] = require('./' + file);
       });
@@ -107,7 +107,7 @@ export class Resource {
   static fromEvent(aws, event) {
     if (!Resource._types) {
       Resource._types = {};
-      fs.readdirSync(__dirname).forEach( (file) => {
+      fs.readdirSync(__dirname).forEach((file) => {
         if (file === 'Resource.js') return;
         Resource._types[file.split('.')[0]] = require('./' + file);
       });

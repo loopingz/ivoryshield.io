@@ -1,4 +1,6 @@
-import { Configurer } from './configurer';
+import {
+  Configurer
+} from './configurer';
 
 export default class ElkSetup extends Configurer {
 
@@ -29,3 +31,7 @@ export default class ElkSetup extends Configurer {
     }
   }
 }
+
+export {
+  ElkSetup
+};

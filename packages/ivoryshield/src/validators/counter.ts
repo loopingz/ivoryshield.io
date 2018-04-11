@@ -1,7 +1,9 @@
-import { Validator } from './validator';
+import {
+  Validator
+} from './validator';
 
 export default class CounterValidator extends Validator {
-  async validate(aws, resource) : Promise<any> {
+  async validate(aws, resource): Promise < any > {
     let metrics = {};
     metrics[resource.constructor.name] = 1;
     return Promise.resolve(metrics);
@@ -20,4 +22,6 @@ export default class CounterValidator extends Validator {
   }
 }
 
-export { CounterValidator };
+export {
+  CounterValidator
+};

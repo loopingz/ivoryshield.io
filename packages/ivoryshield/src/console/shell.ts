@@ -1,8 +1,24 @@
-import { WebdaServer, WebdaConsole } from 'webda-shell';
-import { Executor, Store } from 'webda';
-import { AWSServiceMixIn, STS, Webda, Service, AWS } from '../services/aws-mixin';
-import { Validator } from '../validators/validator';
-import { Configurer } from '../configurers/configurer';
+import {
+  WebdaServer,
+  WebdaConsole
+} from 'webda-shell';
+import {
+  Executor,
+  Store
+} from 'webda';
+import {
+  AWSServiceMixIn,
+  STS,
+  Webda,
+  Service,
+  AWS
+} from '../services/aws-mixin';
+import {
+  Validator
+} from '../validators/validator';
+import {
+  Configurer
+} from '../configurers/configurer';
 
 const path = require('path');
 const fs = require('fs');
@@ -44,7 +60,7 @@ exports.handler = (event, context, callback) => {
 */
 export class ConfigurationService extends AWSServiceMixIn(Executor) {
   _config: any;
-  organization: Promise<any>;
+  organization: Promise < any > ;
   static CONFIG_FILENAME = './ivoryshield.config.json';
 
   init(params) {
@@ -63,7 +79,11 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     this._config.credentials = this._config.credentials || {};
     this._config.configurers = this._config.configurers || {};
     this._config.validators = this._config.validators || {};
-    this._aws = this._getAWS({region: 'us-east-1', accessKeyId: this._config.credentials.accessKeyId, secretAccessKey: this._config.credentials.secretAccessKey});
+    this._aws = this._getAWS({
+      region: 'us-east-1',
+      accessKeyId: this._config.credentials.accessKeyId,
+      secretAccessKey: this._config.credentials.secretAccessKey
+    });
     this.reinitClients();
   }
 
@@ -100,7 +120,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
       console.log('Missing deployment required configuration');
       //return;
     }
-    let unit : any = {
+    let unit: any = {
       clusterName: this._config.deployment.clusterName || 'ivoryshield',
       subnets: this._config.deployment.subnets,
       repositoryNamespace: '',
@@ -113,7 +133,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
       type: 'WebdaDeployer/Fargate',
       name: 'ivoryshield'
     }
-     // Set the CronChecker
+    // Set the CronChecker
     unit.serviceName = this._config.deployment.croncheckServiceName || 'ivoryshield/cron';
     unit.workers = ['IvoryShield/CronCheckerService'];
     webdaDeployment.units.push(unit);
@@ -212,15 +232,15 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
 
   enableOrganization(ctx) {
     delete this._config.accounts;
-    return this.save().then( () => {
-      this.organization = new (this._aws.Organizations)().listAccounts({}).promise();
+    return this.save().then(() => {
+      this.organization = new(this._aws.Organizations)().listAccounts({}).promise();
       return this.getOrganization(ctx);
     });
   }
 
   disableOrganization(ctx) {
     this._config.accounts = [];
-    return this.save().then( () => {
+    return this.save().then(() => {
       ctx.write(this._config.accounts);
     });
   }
@@ -229,40 +249,46 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     this._sts = new this._aws.STS();
     this.mainAccount = this._sts.getCallerIdentity().promise();
     if (!this._config.accounts) {
-      this.organization = new (this._aws.Organizations)().listAccounts({}).promise();
+      this.organization = new(this._aws.Organizations)().listAccounts({}).promise();
     }
   }
 
   testConnection(ctx) {
-    this._aws = this._getAWS({region: 'us-east-1', accessKeyId: ctx.body.accessKeyId, secretAccessKey: ctx.body.secretAccessKey});
+    this._aws = this._getAWS({
+      region: 'us-east-1',
+      accessKeyId: ctx.body.accessKeyId,
+      secretAccessKey: ctx.body.secretAccessKey
+    });
     this.reinitClients();
     let promise;
     if (this._config.accounts) {
-      promise = Promise.resolve({Accounts: this._config.accounts});
+      promise = Promise.resolve({
+        Accounts: this._config.accounts
+      });
     } else {
       promise = this.organization;
     }
     let accounts;
-    return promise.then( (res) => {
+    return promise.then((res) => {
       accounts = res.Accounts;
-      let promises = accounts.map( (acc) => {
+      let promises = accounts.map((acc) => {
         acc.AssumeRoleSuccessful = false;
         acc.AssumeRoleError = null;
-        return this._assumeRole(acc.Id, ctx.body.role, ctx.body.externalId, 'us-east-1', true).then( () => {
+        return this._assumeRole(acc.Id, ctx.body.role, ctx.body.externalId, 'us-east-1', true).then(() => {
           acc.AssumeRoleSuccessful = true;
-        }).catch( (err) => {
+        }).catch((err) => {
           acc.AssumeRoleError = err;
           acc.AssumeRoleSuccessful = false;
         });
       });
       return Promise.all(promises);
-    }).then( () => {
+    }).then(() => {
       ctx.write(accounts);
     });
   }
 
   save() {
-    return new Promise( (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this._config.lastUpdate = new Date();
       if (this._config.accounts) {
         this._config.accounts.map((acc) => {
@@ -283,7 +309,11 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     if (fs.existsSync(ConfigurationService.CONFIG_FILENAME)) {
       this._config = JSON.parse(fs.readFileSync(ConfigurationService.CONFIG_FILENAME));
     } else {
-      this._config = {credentials: {role: 'OrganizationAccountAccessRole'}};
+      this._config = {
+        credentials: {
+          role: 'OrganizationAccountAccessRole'
+        }
+      };
     }
   }
 
@@ -299,19 +329,22 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
 
   getMe(ctx) {
     let mainAccount;
-    return this.mainAccount.then( (acc) => {
+    return this.mainAccount.then((acc) => {
       mainAccount = acc;
-    }).catch( (err) => {
+    }).catch((err) => {
       console.log('Cannot get the main account');
-    }).then( () => {
-      ctx.write({mainAccount: mainAccount, useOrganization: this._config.accounts === undefined});
+    }).then(() => {
+      ctx.write({
+        mainAccount: mainAccount,
+        useOrganization: this._config.accounts === undefined
+      });
     });
   }
 
   getOrganization(ctx) {
-    return this.organization.then( (accounts) => {
+    return this.organization.then((accounts) => {
       ctx.write(accounts.Accounts);
-    }).catch( (err) => {
+    }).catch((err) => {
       if (err.code === 'AccessDeniedException') {
         throw 403;
       }
@@ -378,7 +411,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
   static logo(lines = []) {
     const logoLines = require('../../logo.json');
     console.log('');
-    logoLines.forEach( (line, idx) => {
+    logoLines.forEach((line, idx) => {
       line = '  ' + line.join('') + '  ';
       if (idx > 0 && lines.length > (idx - 1)) {
         line = line + lines[idx - 1];
@@ -390,7 +423,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
 
   static config(argv) {
     let webda = new IvoryShieldConfigurationServer();
-    return new Promise( () => {
+    return new Promise(() => {
       webda.serve(18181, argv.open);
     });
   }
@@ -405,7 +438,10 @@ export default class IvoryShieldConsole extends WebdaConsole {
     configurationService.init({});
     configurationService.generateWebdaConfiguration();
     // Deploy on AWS through Webda
-    return super.deploy({deployment: 'ivoryshield', _: []});
+    return super.deploy({
+      deployment: 'ivoryshield',
+      _: []
+    });
   }
 
   static handleCommand(args) {

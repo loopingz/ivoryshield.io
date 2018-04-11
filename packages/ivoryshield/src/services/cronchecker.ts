@@ -1,7 +1,18 @@
-import { AWSServiceMixIn, STS, Webda, AWS } from '../services/aws-mixin';
-import { Service } from 'webda';
-import { ValidatorService } from './validator';
-import { Configurer } from '../configurers/configurer'
+import {
+  AWSServiceMixIn,
+  STS,
+  Webda,
+  AWS
+} from '../services/aws-mixin';
+import {
+  Service
+} from 'webda';
+import {
+  ValidatorService
+} from './validator';
+import {
+  Configurer
+} from '../configurers/configurer'
 const Resource = require('../resources/Resource');
 const fs = require('fs');
 const elasticsearch = require('elasticsearch');
@@ -18,28 +29,34 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   init(config) {
     super.init(config);
-    this._validatorService = <ValidatorService> this.getService('ValidatorService');
-    this._metrics = {Global: {Resources: 0}};
+    this._validatorService = < ValidatorService > this.getService('ValidatorService');
+    this._metrics = {
+      Global: {
+        Resources: 0
+      }
+    };
     this._params.configurers = this._params.configurers || [];
     this._configurers = [];
     this._globalConfigurers = [];
     if (this._params.elasticsearch) {
       console.log('Creating ES client to', this._params.elasticsearch);
-      this._es = new elasticsearch.Client({host: this._params.elasticsearch});
+      this._es = new elasticsearch.Client({
+        host: this._params.elasticsearch
+      });
       this._params.elasticsearchIndex = this._params.elasticsearchIndex || 'metrics';
     }
-    this._params.configurers.forEach( (configurer) => {
-      let service = <Configurer> this.getService(configurer);
+    this._params.configurers.forEach((configurer) => {
+      let service = < Configurer > this.getService(configurer);
       if (!service || !service.configure || !service.isGlobal) {
-        console.log('Service', configurer,'should implement configure and isGlobal method');
+        console.log('Service', configurer, 'should implement configure and isGlobal method');
         return;
       }
       if (service.isGlobal()) {
         console.log('Adding global configurer: ', configurer);
-        this._globalConfigurers.push(<Configurer> this.getService(configurer));
+        this._globalConfigurers.push( < Configurer > this.getService(configurer));
       } else {
         console.log('Adding configurer: ', configurer);
-        this._configurers.push(<Configurer> this.getService(configurer));
+        this._configurers.push( < Configurer > this.getService(configurer));
       }
     });
   }
@@ -55,15 +72,17 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
       return;
     }
     try {
-    let metrics = await this._validatorService.handleResource(aws, resourceObject, account);
-    this._handleMetrics(metrics, account);
+      let metrics = await this._validatorService.handleResource(aws, resourceObject, account);
+      this._handleMetrics(metrics, account);
     } catch (err) {
       console.log('Cannot process', resources, err);
     }
   }
 
   _handleMetrics(metrics, account) {
-    this._metrics[account] = this._metrics[account] || {Resources: 0};
+    this._metrics[account] = this._metrics[account] || {
+      Resources: 0
+    };
     for (let i in metrics) {
       this._metrics['Global'][i] = this._metrics['Global'][i] || 0;
       this._metrics['Global'][i] += metrics[i];
@@ -76,11 +95,11 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   async checkInstances(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeInstances().promise().then( (res) => {
+    return ec2.describeInstances().promise().then((res) => {
       let promise = Promise.resolve();
       for (let i in res.Reservations) {
-        res.Reservations[i].Instances.forEach( (inst) => {
-          promise = promise.then( () => {
+        res.Reservations[i].Instances.forEach((inst) => {
+          promise = promise.then(() => {
             return this._handleResource(aws, inst, 'EC2Instance', account);
           });
         });
@@ -91,10 +110,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkVolumes(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeVolumes().promise().then( (res) => {
+    return ec2.describeVolumes().promise().then((res) => {
       let promise = Promise.resolve();
       res.Volumes.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'Volume', account);
         });
       });
@@ -104,10 +123,12 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkSnapshots(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeSnapshots({OwnerIds: [account]}).promise().then( (res) => {
+    return ec2.describeSnapshots({
+      OwnerIds: [account]
+    }).promise().then((res) => {
       let promise = Promise.resolve();
       res.Snapshots.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'Snapshot', account);
         });
       });
@@ -117,10 +138,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkSecurityGroups(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeSecurityGroups().promise().then( (res) => {
+    return ec2.describeSecurityGroups().promise().then((res) => {
       let promise = Promise.resolve();
       res.SecurityGroups.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'SecurityGroup', account);
         });
       });
@@ -130,10 +151,12 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkAMIs(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeImages({Owners: [account]}).promise().then( (res) => {
+    return ec2.describeImages({
+      Owners: [account]
+    }).promise().then((res) => {
       let promise = Promise.resolve();
       res.Images.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'AMI', account);
         });
       });
@@ -146,10 +169,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
       return Promise.resolve();
     }
     let ec2 = new aws.EC2();
-    return ec2.describeAddresses().promise().then( (res) => {
+    return ec2.describeAddresses().promise().then((res) => {
       let promise = Promise.resolve();
       res.Addresses.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'EIP', account);
         });
       });
@@ -159,10 +182,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkNetworkInterfaces(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeNetworkInterfaces().promise().then( (res) => {
+    return ec2.describeNetworkInterfaces().promise().then((res) => {
       let promise = Promise.resolve();
       res.NetworkInterfaces.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'NetworkInterface', account);
         });
       });
@@ -175,10 +198,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
       return Promise.resolve();
     }
     let ec2 = new aws.EC2();
-    return ec2.describeLoadBalancers().promise().then( (res) => {
+    return ec2.describeLoadBalancers().promise().then((res) => {
       let promise = Promise.resolve();
       res.Volumes.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'LoadBalancer', account);
         });
       });
@@ -191,10 +214,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
       return Promise.resolve();
     }
     let ec2 = new aws.EC2();
-    return ec2.describeCustomerGateways().promise().then( (res) => {
+    return ec2.describeCustomerGateways().promise().then((res) => {
       let promise = Promise.resolve();
       res.CustomerGateways.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'CustomerGateways', account);
         });
       });
@@ -204,10 +227,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkInternetGateways(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeInternetGateways().promise().then( (res) => {
+    return ec2.describeInternetGateways().promise().then((res) => {
       let promise = Promise.resolve();
       res.InternetGateways.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'InternetGateway', account);
         });
       });
@@ -217,10 +240,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkNatGateways(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeNatGateways().promise().then( (res) => {
+    return ec2.describeNatGateways().promise().then((res) => {
       let promise = Promise.resolve();
       res.NatGateways.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'NatGateway', account);
         });
       });
@@ -230,10 +253,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkSubnets(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeSubnets().promise().then( (res) => {
+    return ec2.describeSubnets().promise().then((res) => {
       let promise = Promise.resolve();
       res.Subnets.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'Subnet', account);
         });
       });
@@ -243,10 +266,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkVpcs(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeVpcs().promise().then( (res) => {
+    return ec2.describeVpcs().promise().then((res) => {
       let promise = Promise.resolve();
       res.Vpcs.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'Vpc', account);
         });
       });
@@ -256,10 +279,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkS3(aws, account) {
     let s3 = new aws.S3();
-    return s3.listBuckets().promise().then( (res) => {
+    return s3.listBuckets().promise().then((res) => {
       let promise = Promise.resolve();
       res.Buckets.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'S3Bucket', account);
         });
       });
@@ -269,11 +292,11 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   checkIAMUsers(aws, account) {
     let iam = new aws.IAM();
-    return iam.listUsers().promise().then( (res) => {
+    return iam.listUsers().promise().then((res) => {
       let promise = Promise.resolve();
       console.log(res);
       res.Users.forEach((inst) => {
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           return this._handleResource(aws, inst, 'IAMUser', account);
         });
       });
@@ -297,8 +320,8 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   getCount() {
     let globalCount = 0;
-    return this.forEachAccountRegion( (aws, account, region) => {
-      return new aws.EC2().describeInstances().promise().then( (res) => {
+    return this.forEachAccountRegion((aws, account, region) => {
+      return new aws.EC2().describeInstances().promise().then((res) => {
         let count = 0;
         for (let i in res.Reservations) {
           count += res.Reservations[i].Instances.length
@@ -306,46 +329,46 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
         globalCount += count;
         console.log('\t\tInstances:', count, account, region);
       });
-    }).then ( () => {
+    }).then(() => {
       console.log('Global count of instances:', globalCount);
     });
   }
 
   _handleRegionalServices(aws, account, region) {
-    return this._handleConfigurers(aws, account, region).then( () => {
+    return this._handleConfigurers(aws, account, region).then(() => {
       console.log('Check EC2 Instances');
       return this.checkInstances(aws, account, region)
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 Volumes');
       return this.checkVolumes(aws, account, region);
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 Snapshots');
       return this.checkSnapshots(aws, account, region);
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 SecurityGroups');
       return this.checkSecurityGroups(aws, account, region);
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 AMIs');
       return this.checkAMIs(aws, account, region);
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 EIPs');
       return this.checkEIPs(aws, account, region);
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 NetworkInterface');
       return this.checkNetworkInterfaces(aws, account, region);
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 CustomerGateways');
       return this.checkCustomerGateways(aws, account, region);
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 InternetGateways');
       return this.checkInternetGateways(aws, account, region);
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 NatGateways');
       return this.checkNatGateways(aws, account, region);
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 Subnets');
       return this.checkSubnets(aws, account, region);
-    }).then( () => {
+    }).then(() => {
       console.log('Check EC2 Vpcs');
       return this.checkVpcs(aws, account, region);
     });
@@ -353,8 +376,8 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   _handleConfigurers(aws, account, region) {
     let promise = Promise.resolve();
-    this._configurers.forEach( (service) => {
-      promise = promise.then( () => {
+    this._configurers.forEach((service) => {
+      promise = promise.then(() => {
         console.log('Launch global configurer', service._name);
         return service.configure(aws, account, region);
       });
@@ -364,8 +387,8 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
 
   _handleGlobalConfigurers(aws, account) {
     let promise = Promise.resolve();
-    this._globalConfigurers.forEach( (service) => {
-      promise = promise.then( () => {
+    this._globalConfigurers.forEach((service) => {
+      promise = promise.then(() => {
         console.log('Launch global configurer', service._name);
         return service.configure(aws, account);
       });
@@ -374,10 +397,10 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
   }
 
   _handleGlobalServices(aws, account) {
-    return this._handleGlobalConfigurers(aws, account).then( () => {
+    return this._handleGlobalConfigurers(aws, account).then(() => {
       console.log('Check S3 Buckets');
       return this.checkS3(aws, account);
-    }).then( () => {
+    }).then(() => {
       console.log('Check IAM Users');
       return this.checkIAMUsers(aws, account);
     });
@@ -406,11 +429,11 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
     let promises = [];
     for (let i in metrics) {
       if (i === 'Global' || this.getAccountName(i) === 'Unknown') continue;
-      let esData : any = {};
+      let esData: any = {};
       esData.index = this._params.elasticsearchIndex;
       esData.id = i + '-' + metrics.timestamp;
       //'2018-02-09T22:14:54Z'
-      
+
       esData.type = 'ivoryshield-metrics';
       esData.body = metrics[i];
       esData.body.accountName = this.getAccountName(i);
@@ -427,7 +450,7 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
     let files = fs.readdirSync('./logs');
     console.log(files);
     let promises = [];
-    files.forEach( (file) => {
+    files.forEach((file) => {
       let obj = JSON.parse(fs.readFileSync('./logs/' + file));
       promises.push(this.saveMetrics(obj));
     });
@@ -435,8 +458,8 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
   }
 
   configure() {
-    return this.forEachAccountRegion( this._handleConfigurers.bind(this), 'Regional objects').then( () => {
-      return this.forEachAccount( this._handleGlobalConfigurers.bind(this) );
+    return this.forEachAccountRegion(this._handleConfigurers.bind(this), 'Regional objects').then(() => {
+      return this.forEachAccount(this._handleGlobalConfigurers.bind(this));
     });
   }
 
@@ -449,9 +472,9 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
     this._elapsed = new Date().getTime();
 
     //return this.getCount();
-    return this.forEachAccountRegion( this._handleRegionalServices.bind(this), 'Regional objects').then( () => {
-      return this.forEachAccount( this._handleGlobalServices.bind(this) );
-    }).then( () => {
+    return this.forEachAccountRegion(this._handleRegionalServices.bind(this), 'Regional objects').then(() => {
+      return this.forEachAccount(this._handleGlobalServices.bind(this));
+    }).then(() => {
       return this._handleResults();
     });
   }

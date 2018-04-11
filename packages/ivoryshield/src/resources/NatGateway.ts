@@ -1,11 +1,12 @@
-import { EC2Resource } from './EC2Resource';
+import {
+  EC2Resource
+} from './EC2Resource';
 
 export class NatGateway extends EC2Resource {
-  
+
   NatGatewayId: string;
-  
-  static getEventMapper() {
-  }
+
+  static getEventMapper() {}
 
   getId() {
     return this.NatGatewayId || this._id;

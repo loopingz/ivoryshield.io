@@ -1,7 +1,9 @@
-import { Validator } from './validator';
+import {
+  Validator
+} from './validator';
 
 export default class AutoTagCreatorValidator extends Validator {
-  async validate(aws, resource) : Promise<any> {
+  async validate(aws, resource): Promise < any > {
     let metrics = {};
     let promise = Promise.resolve();
     let error = '';
@@ -9,10 +11,10 @@ export default class AutoTagCreatorValidator extends Validator {
       return Promise.resolve(metrics);
     }
     if (resource._fromEvent.eventName === 'CreateTags') {
-      return Promise.resolve(metrics);	
+      return Promise.resolve(metrics);
     }
     if (!resource.getTag(this.getTagName('creator')) && resource._fromEvent.userIdentity) {
-    	return this.updateTag(resource, 'creator', resource._fromEvent.userIdentity.arn);
+      return this.updateTag(resource, 'creator', resource._fromEvent.userIdentity.arn);
     }
     return Promise.resolve(metrics)
   }
@@ -41,3 +43,7 @@ export default class AutoTagCreatorValidator extends Validator {
     }
   }
 }
+
+export {
+  AutoTagCreatorValidator
+};

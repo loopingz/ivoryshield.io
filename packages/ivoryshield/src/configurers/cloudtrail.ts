@@ -1,4 +1,6 @@
-import { Configurer } from './configurer';
+import {
+  Configurer
+} from './configurer';
 
 export default class CloudTrailSetup extends Configurer {
 
@@ -43,3 +45,7 @@ export default class CloudTrailSetup extends Configurer {
     }
   }
 }
+
+export {
+  CloudTrailSetup
+};

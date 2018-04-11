@@ -1,11 +1,12 @@
-import { EC2Resource } from './EC2Resource';
+import {
+  EC2Resource
+} from './EC2Resource';
 
 export class SecurityGroup extends EC2Resource {
 
   GroupId: string;
 
-  static getEventMapper() {
-  }
+  static getEventMapper() {}
 
   getId() {
     return this.GroupId || this._id;

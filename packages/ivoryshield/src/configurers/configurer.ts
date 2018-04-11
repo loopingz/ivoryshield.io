@@ -1,4 +1,6 @@
-import { Service } from 'webda';
+import {
+  Service
+} from 'webda';
 
 export class Configurer extends Service {
 

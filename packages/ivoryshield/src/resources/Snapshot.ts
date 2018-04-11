@@ -1,4 +1,6 @@
-import { EC2Resource } from './EC2Resource';
+import {
+  EC2Resource
+} from './EC2Resource';
 
 export class Snapshot extends EC2Resource {
 

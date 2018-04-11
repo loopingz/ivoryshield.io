@@ -1,4 +1,6 @@
-import { Resource } from './Resource';
+import {
+  Resource
+} from './Resource';
 
 export class IAMResource extends Resource {
 
