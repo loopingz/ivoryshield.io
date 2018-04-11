@@ -2,7 +2,7 @@ import {
   EC2Resource
 } from './EC2Resource';
 
-export class EIP extends EC2Resource {
+export default class EIP extends EC2Resource {
 
   AllocationId: string;
 
@@ -13,3 +13,7 @@ export class EIP extends EC2Resource {
   }
 
 }
+
+export {
+  EIP
+};

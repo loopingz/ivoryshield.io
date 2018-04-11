@@ -1,7 +1,7 @@
 const fs = require('fs');
 const jsonpath = require('jsonpath');
 
-export class Resource {
+export default class Resource {
   _AWS: any;
   _Tags: any;
   _id: string;
@@ -125,3 +125,7 @@ export class Resource {
     return resources;
   }
 }
+
+export {
+  Resource
+};

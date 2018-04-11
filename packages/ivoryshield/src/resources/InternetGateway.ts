@@ -2,7 +2,7 @@ import {
   EC2Resource
 } from './EC2Resource';
 
-module.exports = class InternetGateway extends EC2Resource {
+export default class InternetGateway extends EC2Resource {
 
   InternetGatewayId: string;
 
@@ -13,3 +13,7 @@ module.exports = class InternetGateway extends EC2Resource {
   }
 
 }
+
+export {
+  InternetGateway
+};

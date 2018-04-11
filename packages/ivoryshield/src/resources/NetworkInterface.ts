@@ -2,7 +2,7 @@ import {
   EC2Resource
 } from './EC2Resource';
 
-export class NetworkInterface extends EC2Resource {
+export default class NetworkInterface extends EC2Resource {
 
   NetworkInterfaceId: string;
   TagSet: any;
@@ -23,3 +23,7 @@ export class NetworkInterface extends EC2Resource {
   }
 
 }
+
+export {
+  NetworkInterface
+};

@@ -2,7 +2,7 @@ import {
   EC2Resource
 } from './EC2Resource';
 
-export class SecurityGroup extends EC2Resource {
+export default class SecurityGroup extends EC2Resource {
 
   GroupId: string;
 
@@ -13,3 +13,7 @@ export class SecurityGroup extends EC2Resource {
   }
 
 }
+
+export {
+  SecurityGroup
+};

@@ -2,7 +2,7 @@ import {
   EC2Resource
 } from './EC2Resource';
 
-export class AMI extends EC2Resource {
+export default class AMI extends EC2Resource {
 
   ImageId: string;
 
@@ -15,3 +15,7 @@ export class AMI extends EC2Resource {
   }
 
 }
+
+export {
+  AMI
+};

@@ -2,7 +2,7 @@ import {
   EC2Resource
 } from './EC2Resource';
 
-export class NatGateway extends EC2Resource {
+export default class NatGateway extends EC2Resource {
 
   NatGatewayId: string;
 
@@ -13,3 +13,7 @@ export class NatGateway extends EC2Resource {
   }
 
 }
+
+export {
+  NatGateway
+};

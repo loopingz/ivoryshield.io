@@ -2,7 +2,7 @@ import {
   Resource
 } from "./Resource";
 
-export class EC2Resource extends Resource {
+export default class EC2Resource extends Resource {
 
   _tagsToDelete: any[];
   _tagsToAdd: any[];
@@ -102,3 +102,7 @@ export class EC2Resource extends Resource {
   }
 
 }
+
+export {
+  EC2Resource
+};

@@ -2,7 +2,7 @@ import {
   EC2Resource
 } from './EC2Resource';
 
-export class Subnet extends EC2Resource {
+export default class Subnet extends EC2Resource {
 
   SubnetId: string;
 
@@ -17,3 +17,7 @@ export class Subnet extends EC2Resource {
   }
 
 }
+
+export {
+  Subnet
+};

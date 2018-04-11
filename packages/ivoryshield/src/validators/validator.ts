@@ -28,7 +28,7 @@ export default class Validator extends Service {
     return this._params.tagPrefix + name;
   }
 
-  async updateTag(resource, tagName, value) {
+  async updateTag(resource, tagName, value = undefined) {
     if (!resource.canTag()) {
       return;
     }

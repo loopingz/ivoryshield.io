@@ -2,7 +2,7 @@ import {
   IAMResource
 } from './IAMResource';
 
-module.exports = class AMI extends IAMResource {
+export default class IAMUser extends IAMResource {
 
   AccessKeys: any[];
   UserId: string;
@@ -38,3 +38,7 @@ module.exports = class AMI extends IAMResource {
   }
 
 }
+
+export {
+  IAMUser
+};

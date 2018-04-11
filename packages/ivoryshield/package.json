@@ -2,7 +2,8 @@
   "name": "ivoryshield",
   "version": "0.9.0",
   "description": "Protect your cloud and automate it",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
     "pretest": "npm run build",

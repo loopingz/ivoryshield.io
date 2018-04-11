@@ -2,7 +2,7 @@ import {
   EC2Resource
 } from './EC2Resource';
 
-export class Volume extends EC2Resource {
+export default class Volume extends EC2Resource {
 
   VolumeId: string;
 
@@ -17,3 +17,7 @@ export class Volume extends EC2Resource {
   }
 
 }
+
+export {
+  Volume
+};

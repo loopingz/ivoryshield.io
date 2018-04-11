@@ -5,7 +5,7 @@ import {
   EC2
 } from 'aws-sdk';
 
-export class EC2Instance extends EC2Resource implements EC2.Types.InstanceAttribute {
+export default class EC2Instance extends EC2Resource implements EC2.Types.InstanceAttribute {
 
   InstanceId: string;
 
@@ -16,3 +16,7 @@ export class EC2Instance extends EC2Resource implements EC2.Types.InstanceAttrib
   }
 
 }
+
+export {
+  EC2Instance
+};

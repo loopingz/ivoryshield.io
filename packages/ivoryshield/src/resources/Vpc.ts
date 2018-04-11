@@ -3,7 +3,7 @@ import {
 } from './EC2Resource';
 
 
-export class Vpc extends EC2Resource {
+export default class Vpc extends EC2Resource {
 
   VpcId: string;
 
@@ -14,3 +14,7 @@ export class Vpc extends EC2Resource {
   }
 
 }
+
+export {
+  Vpc
+};

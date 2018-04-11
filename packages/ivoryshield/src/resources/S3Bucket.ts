@@ -2,7 +2,7 @@ import {
   Resource
 } from './Resource';
 
-export class S3Bucket extends Resource {
+export default class S3Bucket extends Resource {
 
   Name: string;
   _updated: boolean = false;
@@ -102,3 +102,7 @@ export class S3Bucket extends Resource {
     return new S3Bucket(aws, id);
   }
 }
+
+export {
+  S3Bucket
+};

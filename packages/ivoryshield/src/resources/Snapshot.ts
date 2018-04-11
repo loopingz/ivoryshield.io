@@ -2,7 +2,7 @@ import {
   EC2Resource
 } from './EC2Resource';
 
-export class Snapshot extends EC2Resource {
+export default class Snapshot extends EC2Resource {
 
   SnapshotId: string;
 
@@ -17,3 +17,7 @@ export class Snapshot extends EC2Resource {
   }
 
 }
+
+export {
+  Snapshot
+};
