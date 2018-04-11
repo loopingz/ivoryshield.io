@@ -1,11 +1,11 @@
 {
   "services": {
-    "IvoryShield/CronChecker": "ivoryshield/services/cronchecker",
-    "IvoryShield/CloudTrail": "ivoryshield/services/cloudtrail",
-    "IvoryShield/ValidatorService": "ivoryshield/services/validator",
-    "IvoryShield/Counter": "ivoryshield/validators/counter",
-    "IvoryShield/AutoTagCreator": "ivoryshield/validators/autotagcreator",
-    "IvoryShield/CloudTrailSetup": "ivoryshield/configurers/cloudtrail",
-    "IvoryShield/ElkSetup": "ivoryshield/configurers/elk"
+    "IvoryShield/CronChecker": "lib/services/cronchecker",
+    "IvoryShield/CloudTrail": "lib/services/cloudtrail",
+    "IvoryShield/ValidatorService": "lib/services/validator",
+    "IvoryShield/Counter": "lib/validators/counter",
+    "IvoryShield/AutoTagCreator": "lib/validators/autotagcreator",
+    "IvoryShield/CloudTrailSetup": "lib/configurers/cloudtrail",
+    "IvoryShield/ElkSetup": "lib/configurers/elk"
   }
 }

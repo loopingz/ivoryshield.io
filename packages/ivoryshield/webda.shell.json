@@ -1,4 +1,4 @@
 {
   "name": "ivoryshield",
-  "handler": "console/shell"
+  "handler": "lib/console/shell"
 }

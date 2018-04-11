@@ -20,6 +20,13 @@
     "elasticsearch": "^14.0.0",
     "jsonpath": "^1.0.0",
     "webda": "^0.9.0",
-    "webda-shell": "^0.5.2"
+    "webda-shell": "^0.5.2",
+    "yargs": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^9.6.4",
+    "source-map-support": "^0.5.4",
+    "ts-node": "^5.0.1",
+    "typescript": "^2.8.1"
   }
 }
