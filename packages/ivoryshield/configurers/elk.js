@@ -17,6 +17,10 @@ module.exports = class ElkSetup extends Configurer {
           properties: {
             "elasticsearchName": {
               type: "string"
+            },
+            "storageSpace": {
+              type: "number",
+              title: "Number of Gb for ElasticSearch"
             }
           },
           required: ["elasticsearchName"]

@@ -460,6 +460,11 @@ module.exports = class CronCheckerService extends AWSService(Service) {
     });
   }
 
+  install(resources) {
+    console.log('Should install with', resources);
+    process.exit(0);
+  }
+
   work() {
     this._elapsed = new Date().getTime();
 

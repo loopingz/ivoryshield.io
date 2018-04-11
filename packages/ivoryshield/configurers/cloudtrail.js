@@ -2,7 +2,6 @@ const Configurer = require('./configurer');
 
 module.exports = class CloudTrailSetup extends Configurer {
 
-
   static getModda() {
     return {
       "uuid": "IvoryShield/CloudTrailSetup",

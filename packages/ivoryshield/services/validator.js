@@ -3,9 +3,13 @@ const Resource = require('../resources/Resource');
 
 module.exports = class ValidatorService extends Service {
 
+  constructor(webda, name, params) {
+    super(webda, name, params);
+    this._validators = [];
+  }
+
   init(config) {
     super.init(config);
-    this._validators = [];
     this._config = this.getService('Configuration');
   }
 

@@ -19,6 +19,7 @@
   "dependencies": {
     "elasticsearch": "^14.0.0",
     "jsonpath": "^1.0.0",
+    "webda": "^0.9.0",
     "webda-shell": "^0.5.2"
   }
 }

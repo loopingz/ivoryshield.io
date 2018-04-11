@@ -7,7 +7,7 @@ module.exports = class Validator extends Service {
   }
 
   init(config) {
-    this.getService('ValidatorService').registerValidator(this);
+    this.getService('IvoryShield/ValidatorService').registerValidator(this);
   }
 
   isEnableOn(account, region) {
