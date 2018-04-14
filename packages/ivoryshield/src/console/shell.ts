@@ -114,7 +114,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
       webdaConfig.services[id] = this._config.validators[id];
     }
     webdaConfig.services['IvoryShield/ValidatorService'] = {};
-    webdaConfig.services['IvroyShield/CronCheckerService'] = {};
+    webdaConfig.services['IvoryShield/CronCheckerService'] = {};
 
     if (!this._config.deployment.subnets || !this._config.deployment.taskRole || !this._config.deployment.securityGroup) {
       console.log('Missing deployment required configuration');

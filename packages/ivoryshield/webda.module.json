@@ -1,6 +1,6 @@
 {
   "services": {
-    "IvoryShield/CronChecker": "lib/services/cronchecker",
+    "IvoryShield/CronCheckerService": "lib/services/cronchecker",
     "IvoryShield/CloudTrail": "lib/services/cloudtrail",
     "IvoryShield/ValidatorService": "lib/services/validator",
     "IvoryShield/Counter": "lib/validators/counter",

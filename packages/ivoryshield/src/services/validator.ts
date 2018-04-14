@@ -6,7 +6,7 @@ import {
 } from '../validators/validator';
 const Resource = require('../resources/Resource');
 
-export class ValidatorService extends Service {
+export default class ValidatorService extends Service {
 
   _validators: Validator[];
   _config: any;
@@ -67,3 +67,7 @@ export class ValidatorService extends Service {
     });
   }
 }
+
+export {
+  ValidatorService
+};

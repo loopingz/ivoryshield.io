@@ -18,7 +18,7 @@ const fs = require('fs');
 const elasticsearch = require('elasticsearch');
 const moment = require('moment');
 
-export class CronCheckerService extends AWSServiceMixIn(Service) {
+export default class CronCheckerService extends AWSServiceMixIn(Service) {
   _validatorService: ValidatorService;
   _metrics: any;
   _configurers: Configurer[];
@@ -479,3 +479,7 @@ export class CronCheckerService extends AWSServiceMixIn(Service) {
     });
   }
 }
+
+export {
+  CronCheckerService
+};
