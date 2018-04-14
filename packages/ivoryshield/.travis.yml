@@ -10,6 +10,8 @@ after_success:
 - sonar-scanner
 before_deploy:
 - npm run build
+- npm install -g bower
+- cd wui && bower install
 deploy:
   provider: npm
   email: rcattiau@loopingz.com

@@ -20,6 +20,14 @@
   "bugs": {
     "url": "https://github.com/loopingz/ivoryshield/issues"
   },
+  "files": [
+    "lib",
+    "wui",
+    "webda.module.json",
+    "webda.shell.json",
+    "wui",
+    "logo.json"
+  ],
   "homepage": "https://github.com/loopingz/ivoryshield#readme",
   "dependencies": {
     "elasticsearch": "^14.2.2",
