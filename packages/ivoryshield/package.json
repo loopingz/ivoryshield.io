@@ -1,6 +1,6 @@
 {
   "name": "ivoryshield",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Protect your cloud and automate it",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
