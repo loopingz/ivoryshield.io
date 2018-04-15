@@ -1,0 +1,13 @@
+# Contribute
+
+Thank you for your interest in the project.
+
+## How to setup your environment 
+
+Install typescript
+
+```
+npm install -g typescript
+```
+
+Install git prehook
