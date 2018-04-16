@@ -58,6 +58,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         color: #212121;
         font-size: 22px;
       }
+
+      @media print {
+        .card {
+          margin: 0px;
+          border: 0px;
+          box-shadow: none !important;
+        }
+        body {
+          background-color: white !important;
+        }
+      }
     </style>
   </template>
 </dom-module>

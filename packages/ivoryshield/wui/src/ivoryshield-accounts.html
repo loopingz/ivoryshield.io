@@ -180,6 +180,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     class IvoryShieldAccounts extends Polymer.Element {
       static get properties() {
         return {
+          accounts: {
+            type: Array,
+            notify: true
+          },
           credentials: {
             type: Object,
             value: {

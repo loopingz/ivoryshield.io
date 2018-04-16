@@ -25,35 +25,96 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       table td {
         width: 50%;
       }
+      .center {
+        @apply(--layout-horizontal);
+        @apply(--layout-center-justified);
+      }
+      table {
+        border-spacing: 0px;
+      }
+      table td {
+        padding: 10px;
+      }
+      table tr:nth-child(odd) {
+        background-color: var(--app-light-background-color);
+      }
+      table tr:first-child th {
+        border-bottom: 1px solid var(--app-background-color);
+        padding-bottom: 10px;
+        background-color: white;
+      }
+      table td:first-child {
+        width: 30%;
+      }
+      .protected {
+        @apply(--layout-horizontal);
+        @apply(--layout-end-justified);
+        font-style: italic;
+        margin-top: 30px;
+      }
     </style>
 
     <div class="card">
+      <div class="center">
+        <img src="images/logo.png" />
+      </div>
       <h2>Summary</h2>
       <p>IvoryShield protection will apply to your accounts.</p>
+      <h3>Accounts</h3>
       <p>
         <table>
           <tr>
             <th>Account Name</th>
             <th>Account Id</th>
           </tr>
+          <template is="dom-repeat" items="[[accounts]]">
           <tr>
-            <td></td>
-            <td></td>
+            <td>[[item.Name]]</td>
+            <td>[[item.Id]]</td>
           </tr>
+          </template>
         </table>
       </p>
       <p>
-        Configurers applied :
+        <h3>Configurers</h3>
+        <table>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+          </tr>
+        <template is="dom-repeat" items="[[configurers]]" filter="isActive">
+          <tr>
+            <td>[[item.label]]</td>
+            <td>[[item.description]]</td>
+          </tr>
+        </template>
+      </table>
       </p>
       <p>
-        Validators applied :
+        <h3>Validators</h3>
+        <table>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+          </tr>
+        <template is="dom-repeat" items="[[validators]]" filter="isActive">
+          <tr>
+            <td>[[item.label]]</td>
+            <td>[[item.description]]</td>
+          </tr>
+        </template>
+      </table>
       </p>
+      <div class="protected">Protected by IvoryShield</div>
     </div>
   </template>
 
   <script>
     class IvoryShieldSummary extends Polymer.Element {
       static get is() { return 'ivoryshield-summary'; }
+      isActive(item) {
+        return item.enable;
+      }
     }
 
     window.customElements.define(IvoryShieldSummary.is, IvoryShieldSummary);

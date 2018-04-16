@@ -338,6 +338,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         border-top: 0px;
         margin: 10px 20px;
       }
+
+      @media print {
+        app-header-layout {
+          background-color: white;
+        }
+        
+        app-header {
+          display: none !important;
+        }
+        #bottomNavigation {
+          display: none !important;
+        }
+      }
     </style>
 
     <app-location
@@ -391,11 +404,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               attr-for-selected="name"
               fallback-selection="view404"
               role="main">
-            <ivoryshield-accounts id="accounts" url="[[url]]" name="accounts"></ivoryshield-accounts>
+            <ivoryshield-accounts id="accounts" url="[[url]]" name="accounts" accounts="{{accounts}}"></ivoryshield-accounts>
             <ivoryshield-configurers url="[[url]]" configurers="[[configurers]]" name="configurers"></ivoryshield-configurers>
             <ivoryshield-validators url="[[url]]" validators="[[validators]]" name="validators"></ivoryshield-validators>
             <ivoryshield-deploy url="[[url]]" name="deploy"></ivoryshield-deploy>
-            <ivoryshield-summary url="[[url]]" name="summary"></ivoryshield-summary>
+            <ivoryshield-summary url="[[url]]" name="summary" configurers="[[configurers]]" validators="[[validators]]" accounts="[[accounts]]"></ivoryshield-summary>
             <ivoryshield-view404 url="[[url]]" name="view404"></ivoryshield-view404>
           </iron-pages>
           <div id="bottomNavigation">
@@ -455,6 +468,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       static get properties() {
         return {
+          accounts: {
+            type: Array,
+            value: []
+          },
           url: {
             type: String,
             value: '/api'
@@ -590,6 +607,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
         this.refreshConfigurers();
         this.refreshValidators();
+        Webda.request('accounts').then( (res) => {
+          this.accounts = res.response;
+        });
       }
       refreshConfigurers() {
         Webda.request('configurers').then( (res) => {
