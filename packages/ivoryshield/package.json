@@ -31,6 +31,7 @@
   "homepage": "https://github.com/loopingz/ivoryshield#readme",
   "dependencies": {
     "elasticsearch": "^14.2.2",
+    "glob": "^7.1.2",
     "jsonpath": "^1.0.0",
     "open": "0.0.5",
     "webda": "^0.9.1",

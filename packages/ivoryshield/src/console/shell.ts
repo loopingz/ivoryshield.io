@@ -22,6 +22,7 @@ import {
 
 const path = require('path');
 const fs = require('fs');
+const glob = require('glob');
 
 /*
 const AWS = require('aws-sdk');
@@ -158,7 +159,12 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     for (let i in this._webda._services) {
       // Check if it is a Validator and has Modda
       if (this._webda._services[i].prototype instanceof type && this._webda._services[i].getModda) {
-        result[i] = this._webda._services[i].getModda();
+        let modda = this._webda._services[i].getModda();
+        if (!modda) {
+          this.log('ERROR', 'Service', i, 'does not export any modda');
+          continue;
+        }
+        result[i] = modda;
       }
     }
     return result;
@@ -176,7 +182,12 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     if (ctx._route._http.method === 'GET') {
       // Get map of configurers
       let validators = this.getServicesImplementations(Validator);
+      console.log('validators', Object.keys(validators), validators['Nuxeo/IAM'], validators);
       Object.keys(validators).map((key, index) => {
+        if (!validators[key]) {
+          console.log('Cannot find validator', key);
+          return;
+        }
         validators[key].enable = this._config.validators[key] !== undefined;
         if (validators[key].configuration) {
           validators[key].configuration.value = this._config.validators[key];
@@ -389,7 +400,35 @@ class IvoryShieldConfigurationServer extends WebdaServer {
     }
   }
 
+  getPackagesLocations(): string[] {
+    let includes;
+    if (fs.existsSync(process.cwd() + '/package.json')) {
+      includes = require(process.cwd() + '/package.json').ivoryshield;
+    }
+    return includes || ['lib/**/*.js'];
+  }
+
+  loadModuleFile(path: string) {
+    path = process.cwd() + '/' + path;
+    let mod = require(path);
+    if (!mod) {
+      console.log('Module does have any exports');
+      return;
+    }
+    if (mod.default) {
+      mod = mod.default;
+    }
+    let modda = mod.getModda();
+    if (!modda || !modda.uuid) {
+      return;
+    }
+    this._services[modda.uuid] = mod;
+  }
+
   loadConfiguration(config) {
+    this.getPackagesLocations().map((path) => {
+      glob.sync(path).map(this.loadModuleFile.bind(this));
+    });
     return ServerConfig;
   }
 }

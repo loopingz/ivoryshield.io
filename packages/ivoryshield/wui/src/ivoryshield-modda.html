@@ -23,6 +23,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style include="shared-styles">
       .card {
         max-width: 300px;
+        width: 300px;
       }
       .title {
         font-weight: bold;
@@ -45,10 +46,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div class="description">[[modda.description]]</div>
       <template is="dom-if" if="[[modda.enable]]">
         <div class="buttons">
-          <template is="dom-if" if="[[modda.configuration.schema]]">
+          <template is="dom-if" if="[[isConfigurable(modda)]]">
             <paper-button on-tap="_configure">Configure</paper-button>
           </template>
-          <template is="dom-if" if="[[!modda.configuration.schema]]">
+          <template is="dom-if" if="[[!isConfigurable(modda)]]">
             <div></div>
           </template>
           <paper-button on-tap="_toggleEnable">Disable</paper-button>
@@ -65,7 +66,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
     class IvoryShieldModda extends Polymer.Element {
+
       static get is() { return 'ivoryshield-modda'; }
+      
       static get properties() {
         return {
           modda: {
@@ -73,9 +76,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         }
       }
+
+      isConfigurable(modda) {
+        return modda.configuration && modda.configuration.schema && modda.configuration.schema.properties && Object.keys(modda.configuration.schema.properties).length;
+      }
+
       _configure() {
         this.dispatchEvent(new CustomEvent('ConfigureService', {detail : this.modda, bubble: true, composed : true}));
       }
+
       _toggleEnable() {
         this.set('modda.enable', !this.modda.enable);
         if (this.modda.enable) {

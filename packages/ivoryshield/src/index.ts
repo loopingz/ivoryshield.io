@@ -31,22 +31,22 @@ import {
 
 
 let Resources = {
-  AMI: require('./AMI').AMI,
-  EC2Instance: require('./EC2Instance').EC2Instance,
-  EC2Resource: require('./EC2Resource').EC2Resource,
-  EIP: require('./EIP').EIP,
-  IAMResource: require('./IAMResource').IAMResource,
-  IAMUser: require('./IAMUser').IAMUser,
-  InternetGateway: require('./InternetGateway').InternetGateway,
-  NatGateway: require('./NatGateway').NatGateway,
-  NetworkInterface: require('./NetworkInterface').NetworkInterface,
-  Resource: require('./Resource').Resource,
-  S3Bucket: require('./S3Bucket').S3Bucket,
-  SecurityGroup: require('./SecurityGroup').SecurityGroup,
-  Snapshot: require('./Snapshot').Snapshot,
-  Subnet: require('./Subnet').Subnet,
-  Volume: require('./Volume').Volume,
-  Vpc: require('./Vpc').Vpc
+  AMI: require('./resources/AMI').AMI,
+  EC2Instance: require('./resources/EC2Instance').EC2Instance,
+  EC2Resource: require('./resources/EC2Resource').EC2Resource,
+  EIP: require('./resources/EIP').EIP,
+  IAMResource: require('./resources/IAMResource').IAMResource,
+  IAMUser: require('./resources/IAMUser').IAMUser,
+  InternetGateway: require('./resources/InternetGateway').InternetGateway,
+  NatGateway: require('./resources/NatGateway').NatGateway,
+  NetworkInterface: require('./resources/NetworkInterface').NetworkInterface,
+  Resource: require('./resources/Resource').Resource,
+  S3Bucket: require('./resources/S3Bucket').S3Bucket,
+  SecurityGroup: require('./resources/SecurityGroup').SecurityGroup,
+  Snapshot: require('./resources/Snapshot').Snapshot,
+  Subnet: require('./resources/Subnet').Subnet,
+  Volume: require('./resources/Volume').Volume,
+  Vpc: require('./resources/Vpc').Vpc
 }
 export {
   Configurer,
