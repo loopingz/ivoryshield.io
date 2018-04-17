@@ -1,5 +1,9 @@
 # IvoryShield
 
+<p align="center">
+  <img src="/wui/images/logo.png" alt="IvoryShield logo"/>
+</p>
+
 This project aims to solve monitoring and auto-remediation of your AWS accounts, with a reasonable budget
 
 It have two components :
@@ -10,15 +14,18 @@ Both CloudTrail and CronScanner map AWS Resources to an object, and then use def
 
 It will configure your AWS accounts, and launch on Fargate both components
 
-Software architecture :
+## Software architecture :
+
 ![Software architecture](docs/architecture.png)
 
-Typical deployment :
+## Typical deployment :
+
 ![Typical deployment](docs/deployment.png)
 
 ## Configurer
 
 A configurer allow you to launch the take action on every account and every region
+
 ```
 class Configurer {
    isEnableOn(account, region) {
@@ -44,7 +51,7 @@ module.exports = class IAMValidator extends Validator {
   validate(aws, resource) {
   	 let metrics = {};
   	 // Add your own logic here
-  	 
+
   	 return Promise.resolve(metrics);
   }
 }
