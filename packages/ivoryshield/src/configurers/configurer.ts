@@ -1,6 +1,6 @@
 import {
   Service
-} from 'webda';
+} from '../services/service';
 
 export class Configurer extends Service {
 

@@ -116,6 +116,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     }
     webdaConfig.services['IvoryShield/ValidatorService'] = {};
     webdaConfig.services['IvoryShield/CronCheckerService'] = {};
+    webdaConfig.services['IvoryShield/AccountsService'] = {};
 
     if (!this._config.deployment.subnets || !this._config.deployment.taskRole || !this._config.deployment.securityGroup) {
       console.log('Missing deployment required configuration');
@@ -152,6 +153,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     }
     fs.writeFileSync('./deployments/ivoryshield', JSON.stringify(webdaDeployment, null, ' '));
     fs.writeFileSync('./webda.config.json', JSON.stringify(webdaConfig, null, ' '));
+    return webdaConfig;
   }
 
   getServicesImplementations(type) {
@@ -381,6 +383,8 @@ var ServerConfig = {
 };
 
 class IvoryShieldConfigurationServer extends WebdaServer {
+  _webdaModule: any = {};
+
   serveStaticWebsite(express, app) {
     app.use(express.static(__dirname + '/../../wui/'));
   }
@@ -400,43 +404,17 @@ class IvoryShieldConfigurationServer extends WebdaServer {
     }
   }
 
-  getPackagesLocations(): string[] {
-    let includes;
-    if (fs.existsSync(process.cwd() + '/package.json')) {
-      includes = require(process.cwd() + '/package.json').ivoryshield;
-    }
-    return includes || ['lib/**/*.js'];
-  }
-
-  loadModuleFile(path: string) {
-    path = process.cwd() + '/' + path;
-    let mod = require(path);
-    if (!mod) {
-      console.log('Module does have any exports');
-      return;
-    }
-    if (mod.default) {
-      mod = mod.default;
-    }
-    let modda = mod.getModda();
-    if (!modda || !modda.uuid) {
-      return;
-    }
-    this._services[modda.uuid] = mod;
-  }
-
   loadConfiguration(config) {
-    this.getPackagesLocations().map((path) => {
-      glob.sync(path).map(this.loadModuleFile.bind(this));
-    });
     return ServerConfig;
   }
 }
 
 export default class IvoryShieldConsole extends WebdaConsole {
+
   static help() {
     let lines = [];
     lines.push('config'.bold + ' launch web ui configuration');
+    lines.push('check'.bold + ' perform a local check of the environment');
     lines.push('install'.bold + ' setup your AWS accounts');
     lines.push('deploy'.bold + ' deploy your new configuration');
     return this.logo(lines);
@@ -461,17 +439,27 @@ export default class IvoryShieldConsole extends WebdaConsole {
   }
 
   static config(argv) {
+    this.generateModule();
     let webda = new IvoryShieldConfigurationServer();
     return new Promise(() => {
       webda.serve(18181, argv.open);
     });
   }
 
-  static cron(argv) {
-
+  static check(argv) {
+    this.generateModule();
+    let webda = new IvoryShieldConfigurationServer();
+    let configurationService = < ConfigurationService > webda.getService('configuration');
+    //new ConfigurationService(webda, 'ivoryshield', {});
+    configurationService.generateWebdaConfiguration();
+    return super.worker({
+      deployment: 'ivoryshield',
+      _: ['worker', 'IvoryShield/CronCheckerService']
+    });
   }
 
   static deploy(argv) {
+    this.generateModule();
     let webda = new IvoryShieldConfigurationServer();
     let configurationService = new ConfigurationService(webda, 'ivoryshield', {});
     configurationService.init({});
@@ -488,8 +476,8 @@ export default class IvoryShieldConsole extends WebdaConsole {
     switch (argv._[0]) {
       case 'config':
         return this.config(argv);
-      case 'cron':
-        return this.cron(argv);
+      case 'check':
+        return this.check(argv);
       case 'deploy':
         return this.deploy(argv);
       case 'help':

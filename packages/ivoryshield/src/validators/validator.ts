@@ -1,6 +1,6 @@
 import {
   Service
-} from 'webda';
+} from '../services/service';
 import {
   ValidatorService
 } from '../services/validator';

@@ -13,7 +13,7 @@ import {
 import {
   Configurer
 } from '../configurers/configurer'
-const Resource = require('../resources/Resource');
+import { Resource } from '../resources/Resource';
 const fs = require('fs');
 const elasticsearch = require('elasticsearch');
 const moment = require('moment');
@@ -29,7 +29,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
 
   init(config) {
     super.init(config);
-    this._validatorService = < ValidatorService > this.getService('ValidatorService');
+    this._validatorService = < ValidatorService > this.getService('IvoryShield/ValidatorService');
     this._metrics = {
       Global: {
         Resources: 0
@@ -121,10 +121,10 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     });
   }
 
-  checkSnapshots(aws, account, region) {
+  async checkSnapshots(aws, account, region) {
     let ec2 = new aws.EC2();
     return ec2.describeSnapshots({
-      OwnerIds: [account]
+      OwnerIds: [account.Id]
     }).promise().then((res) => {
       let promise = Promise.resolve();
       res.Snapshots.forEach((inst) => {
@@ -152,7 +152,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   checkAMIs(aws, account, region) {
     let ec2 = new aws.EC2();
     return ec2.describeImages({
-      Owners: [account]
+      Owners: [account.Id]
     }).promise().then((res) => {
       let promise = Promise.resolve();
       res.Images.forEach((inst) => {
@@ -425,10 +425,11 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     return this.saveMetrics(this._metrics);
   }
 
-  saveMetrics(metrics) {
+  async saveMetrics(metrics) {
     let promises = [];
     for (let i in metrics) {
-      if (i === 'Global' || this.getAccountName(i) === 'Unknown') continue;
+      let name = await this.getAccountName(i);
+      if (i === 'Global' || name === 'Unknown') continue;
       let esData: any = {};
       esData.index = this._params.elasticsearchIndex;
       esData.id = i + '-' + metrics.timestamp;
@@ -457,10 +458,9 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     return Promise.all(promises);
   }
 
-  configure() {
-    return this.forEachAccountRegion(this._handleConfigurers.bind(this), 'Regional objects').then(() => {
-      return this.forEachAccount(this._handleGlobalConfigurers.bind(this));
-    });
+  async configure() {
+    await this.forEachAccountRegion(this._handleConfigurers.bind(this), 'Regional configurers');
+    await this.forEachAccount(this._handleGlobalConfigurers.bind(this), 'Global configurers');
   }
 
   async install(resources) {
@@ -468,15 +468,19 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     process.exit(0);
   }
 
-  work() {
+  async validate() {
+    await this.forEachAccountRegion(this._handleRegionalServices.bind(this), 'Regional objects');
+    await this.forEachAccount(this._handleGlobalServices.bind(this));
+  }
+
+  async work() {
     this._elapsed = new Date().getTime();
 
-    //return this.getCount();
-    return this.forEachAccountRegion(this._handleRegionalServices.bind(this), 'Regional objects').then(() => {
-      return this.forEachAccount(this._handleGlobalServices.bind(this));
-    }).then(() => {
-      return this._handleResults();
-    });
+    await this.configure();
+
+    await this.validate();
+    
+    await this._handleResults();
   }
 }
 

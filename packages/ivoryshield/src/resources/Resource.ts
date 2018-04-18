@@ -65,13 +65,17 @@ export default class Resource {
     return obj;
   }
 
+  private static loadTypes() {
+    Resource._types = {};
+    fs.readdirSync(__dirname).forEach((file) => {
+      if (!file.endsWith('.js') || file === 'Resource.js') return;
+      let mod = require('./' + file);
+      Resource._types[file.split('.')[0]] = mod.default || mod;
+    });
+  }
   static fromJson(aws, resources, type) {
     if (!Resource._types) {
-      Resource._types = {};
-      fs.readdirSync(__dirname).forEach((file) => {
-        if (file === 'Resource.js') return;
-        Resource._types[file.split('.')[0]] = require('./' + file);
-      });
+      Resource.loadTypes();
     }
     if (Resource._types[type]) {
       return new Resource._types[type](aws, resources);
@@ -106,11 +110,7 @@ export default class Resource {
 
   static fromEvent(aws, event) {
     if (!Resource._types) {
-      Resource._types = {};
-      fs.readdirSync(__dirname).forEach((file) => {
-        if (file === 'Resource.js') return;
-        Resource._types[file.split('.')[0]] = require('./' + file);
-      });
+      Resource.loadTypes();
     }
     let resources = [];
     for (let i in Resource._types) {

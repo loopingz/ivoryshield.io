@@ -28,7 +28,9 @@ import {
 import {
   AWSServiceMixIn
 } from './services/aws-mixin';
-
+import {
+  Service
+} from './services/service';
 
 let Resources = {
   AMI: require('./resources/AMI').AMI,
@@ -59,5 +61,6 @@ export {
   CloudTrailService,
   ValidatorService,
   AWSServiceMixIn,
-  Resources
+  Resources,
+  Service
 };

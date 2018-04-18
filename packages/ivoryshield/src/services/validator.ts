@@ -1,6 +1,6 @@
 import {
   Service
-} from 'webda';
+} from './service';
 import {
   Validator
 } from '../validators/validator';
@@ -38,33 +38,29 @@ export default class ValidatorService extends Service {
     return Promise.all(promises);
   }
 
-  handleResource(aws, resource, account) {
-    return resource.load().then(() => {
-      let metrics = {};
-      let promise = Promise.resolve();
-      this._validators.forEach((validator) => {
-        if (!validator.isEnableOn(aws.config.region, account)) return;
-        promise = promise.then(() => {
-          return validator.validate(aws, resource).then((met: any) => {
-            for (let i in met) {
-              metrics[i] = metrics[i] || 0;
-              metrics[i] += met[i];
-            }
-            return Promise.resolve();
-          }).catch((err) => {
-            // Dont fail if one validator fail
-            console.log('Validator', validator._name, 'had an issue', err.message);
-            return Promise.resolve();
-          });
-        });
-      });
-      return promise.then(() => {
-        // Resource commit
-        return resource.commit();
-      }).then(() => {
-        return Promise.resolve(metrics);
-      });
-    });
+  async handleResource(aws, resource, account) {
+    await resource.load();
+    let metrics = {};
+    let promise = Promise.resolve();
+    for (let i in this._validators) {
+      let validator = this._validators[i];
+      if (!validator.isEnableOn(aws.config.region, account)) continue;
+      try {
+         let met = validator.validate(aws, resource);
+         for (let i in met) {
+            metrics[i] = metrics[i] || 0;
+            metrics[i] += met[i];
+          }
+      } catch (err) {
+        // Dont fail if one validator fail
+        console.log('Validator', validator._name, 'had an issue', err.message);
+      }
+      if (!this.pretend()) {
+        // Resource commit)
+        await resource.commit();
+      }
+    }
+    return metrics;
   }
 }
 
