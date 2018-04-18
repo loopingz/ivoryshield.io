@@ -13,7 +13,9 @@ import {
 import {
   Configurer
 } from '../configurers/configurer'
-import { Resource } from '../resources/Resource';
+import {
+  Resource
+} from '../resources/Resource';
 const fs = require('fs');
 const elasticsearch = require('elasticsearch');
 const moment = require('moment');
@@ -479,7 +481,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     await this.configure();
 
     await this.validate();
-    
+
     await this._handleResults();
   }
 }

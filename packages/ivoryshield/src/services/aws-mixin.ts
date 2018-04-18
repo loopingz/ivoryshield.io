@@ -6,7 +6,9 @@ import {
 import {
   STS
 } from 'aws-sdk';
-import { AccountsService } from './accounts';
+import {
+  AccountsService
+} from './accounts';
 import * as AWS from 'aws-sdk';
 
 type Constructor < T extends Service > = new(...args: any[]) => T;
@@ -143,7 +145,7 @@ function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
       return ( < AccountsService > this.getService('IvoryShield/AccountsService')).getAccounts();
     }
 
-    async getAccountName(id: string) : Promise<string> {
+    async getAccountName(id: string): Promise < string > {
       return ( < AccountsService > this.getService('IvoryShield/AccountsService')).getAccountName(id);
     }
   }

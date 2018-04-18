@@ -46,11 +46,11 @@ export default class ValidatorService extends Service {
       let validator = this._validators[i];
       if (!validator.isEnableOn(aws.config.region, account)) continue;
       try {
-         let met = validator.validate(aws, resource);
-         for (let i in met) {
-            metrics[i] = metrics[i] || 0;
-            metrics[i] += met[i];
-          }
+        let met = validator.validate(aws, resource);
+        for (let i in met) {
+          metrics[i] = metrics[i] || 0;
+          metrics[i] += met[i];
+        }
       } catch (err) {
         // Dont fail if one validator fail
         console.log('Validator', validator._name, 'had an issue', err.message);
