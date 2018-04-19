@@ -67,13 +67,13 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
 
   }
 
-  async _handleResources(aws, resources : any[], type, account) {
+  async _handleResources(aws, resources: any[], type, account) {
     for (let i in resources) {
       await this._handleResource(aws, resources[i], type, account);
     }
   }
 
-  async _handleResource(aws, resource : any, type, account) {
+  async _handleResource(aws, resource: any, type, account) {
     let resourceObject = Resource.fromJson(aws, resource, type);
     if (!resourceObject) {
       this.log('DEBUG', 'Cannot find resources mapping for', type);
@@ -257,7 +257,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   }
 
   async _handleGlobalConfigurers(aws, account) {
-    for (let i in this._globalConfigurers) {  
+    for (let i in this._globalConfigurers) {
       let service = this._globalConfigurers[i];
       this.log('INFO', 'Launch global configurer', service._name);
       await service.configure(aws, account);
