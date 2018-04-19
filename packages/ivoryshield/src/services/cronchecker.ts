@@ -41,7 +41,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     this._configurers = [];
     this._globalConfigurers = [];
     if (this._params.elasticsearch) {
-      console.log('Creating ES client to', this._params.elasticsearch);
+      this.log('DEBUG', 'Creating ES client to', this._params.elasticsearch);
       this._es = new elasticsearch.Client({
         host: this._params.elasticsearch
       });
@@ -50,14 +50,14 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     this._params.configurers.forEach((configurer) => {
       let service = < Configurer > this.getService(configurer);
       if (!service || !service.configure || !service.isGlobal) {
-        console.log('Service', configurer, 'should implement configure and isGlobal method');
+        this.log('WARN', 'Service', configurer, 'should implement configure and isGlobal method');
         return;
       }
       if (service.isGlobal()) {
-        console.log('Adding global configurer: ', configurer);
+        this.log('DEBUG', 'Adding global configurer: ', configurer);
         this._globalConfigurers.push( < Configurer > this.getService(configurer));
       } else {
-        console.log('Adding configurer: ', configurer);
+        this.log('DEBUG', 'Adding configurer: ', configurer);
         this._configurers.push( < Configurer > this.getService(configurer));
       }
     });
@@ -67,17 +67,23 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
 
   }
 
-  async _handleResource(aws, resources, type, account) {
-    let resourceObject = Resource.fromJson(aws, resources, type);
+  async _handleResources(aws, resources : any[], type, account) {
+    for (let i in resources) {
+      await this._handleResource(aws, resources[i], type, account);
+    }
+  }
+
+  async _handleResource(aws, resource : any, type, account) {
+    let resourceObject = Resource.fromJson(aws, resource, type);
     if (!resourceObject) {
-      console.log('Cannot find resources mapping for', type);
+      this.log('DEBUG', 'Cannot find resources mapping for', type);
       return;
     }
     try {
       let metrics = await this._validatorService.handleResource(aws, resourceObject, account);
       this._handleMetrics(metrics, account);
     } catch (err) {
-      console.log('Cannot process', resources, err);
+      this.log('ERROR', 'Cannot process', resource, err);
     }
   }
 
@@ -97,221 +103,101 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
 
   async checkInstances(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeInstances().promise().then((res) => {
-      let promise = Promise.resolve();
-      for (let i in res.Reservations) {
-        res.Reservations[i].Instances.forEach((inst) => {
-          promise = promise.then(() => {
-            return this._handleResource(aws, inst, 'EC2Instance', account);
-          });
-        });
-      }
-      return promise;
-    });
+    let res = ec2.describeInstances().promise();
+    for (let i in res.Reservations) {
+      await this._handleResources(aws, res.Reservations[i].Instances, 'EC2Instance', account);
+    }
   }
 
-  checkVolumes(aws, account, region) {
+  async checkVolumes(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeVolumes().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.Volumes.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'Volume', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await ec2.describeVolumes().promise()).Volumes, 'Volume', account);
   }
 
   async checkSnapshots(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeSnapshots({
+    await this._handleResources(aws, (await ec2.describeSnapshots({
       OwnerIds: [account.Id]
-    }).promise().then((res) => {
-      let promise = Promise.resolve();
-      res.Snapshots.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'Snapshot', account);
-        });
-      });
-      return promise;
-    });
+    }).promise()).Snapshots, 'Snapshot', account);
   }
 
-  checkSecurityGroups(aws, account, region) {
+  async checkSecurityGroups(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeSecurityGroups().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.SecurityGroups.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'SecurityGroup', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await ec2.describeSecurityGroups().promise()).SecurityGroups, 'SecurityGroup', account);
   }
 
-  checkAMIs(aws, account, region) {
+  async checkAMIs(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeImages({
+    await this._handleResources(aws, (await ec2.describeImages({
       Owners: [account.Id]
-    }).promise().then((res) => {
-      let promise = Promise.resolve();
-      res.Images.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'AMI', account);
-        });
-      });
-      return promise;
-    });
+    }).promise()).Images, 'AMI', account);
   }
 
-  checkEIPs(aws, account, region) {
+  async checkEIPs(aws, account, region) {
     if (!this.beta) {
       return Promise.resolve();
     }
     let ec2 = new aws.EC2();
-    return ec2.describeAddresses().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.Addresses.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'EIP', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await ec2.describeAddresses().promise()).Addresses, 'EIP', account);
   }
 
-  checkNetworkInterfaces(aws, account, region) {
+  async checkNetworkInterfaces(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeNetworkInterfaces().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.NetworkInterfaces.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'NetworkInterface', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await ec2.describeNetworkInterfaces().promise()).NetworkInterfaces, 'NetworkInterface', account);
   }
 
-  checkLoadBalancers(aws, account, region) {
+  async checkLoadBalancers(aws, account, region) {
     if (!this.beta) {
       return Promise.resolve();
     }
     let ec2 = new aws.EC2();
-    return ec2.describeLoadBalancers().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.Volumes.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'LoadBalancer', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await ec2.describeLoadBalancers().promise()).LoadBalancers, 'LoadBalancer', account);
   }
 
-  checkCustomerGateways(aws, account, region) {
+  async checkCustomerGateways(aws, account, region) {
     if (!this.beta) {
       return Promise.resolve();
     }
     let ec2 = new aws.EC2();
-    return ec2.describeCustomerGateways().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.CustomerGateways.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'CustomerGateways', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await ec2.describeCustomerGateways().promise()).CustomerGateways, 'CustomerGateways', account);
   }
 
-  checkInternetGateways(aws, account, region) {
+  async checkInternetGateways(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeInternetGateways().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.InternetGateways.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'InternetGateway', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await ec2.describeInternetGateways().promise()).InternetGateways, 'InternetGateway', account);
   }
 
-  checkNatGateways(aws, account, region) {
+  async checkNatGateways(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeNatGateways().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.NatGateways.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'NatGateway', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await ec2.describeNatGateways().promise()).NatGateways, 'NatGateway', account);
   }
 
-  checkSubnets(aws, account, region) {
+  async checkSubnets(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeSubnets().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.Subnets.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'Subnet', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await ec2.describeSubnets().promise()).Subnets, 'Subnet', account);
   }
 
-  checkVpcs(aws, account, region) {
+  async checkVpcs(aws, account, region) {
     let ec2 = new aws.EC2();
-    return ec2.describeVpcs().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.Vpcs.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'Vpc', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await ec2.describeVpcs().promise()).Vpcs, 'Vpc', account);
   }
 
-  checkS3(aws, account) {
+  async checkS3(aws, account) {
     let s3 = new aws.S3();
-    return s3.listBuckets().promise().then((res) => {
-      let promise = Promise.resolve();
-      res.Buckets.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'S3Bucket', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await s3.listBuckets().promise()).Buckets, 'S3Bucket', account);
   }
 
-  checkIAMUsers(aws, account) {
+  async checkIAMUsers(aws, account) {
     let iam = new aws.IAM();
-    return iam.listUsers().promise().then((res) => {
-      let promise = Promise.resolve();
-      console.log(res);
-      res.Users.forEach((inst) => {
-        promise = promise.then(() => {
-          return this._handleResource(aws, inst, 'IAMUser', account);
-        });
-      });
-      return promise;
-    });
+    await this._handleResources(aws, (await iam.listUsers().promise()).Users, 'IAMUser', account);
   }
 
-  checkIAMRoles(aws, account, region) {
+  async checkIAMRoles(aws, account, region) {
     let iam = new aws.IAM();
     // TODO Implement
   }
 
-  checkRds(aws, account, region) {
+  async checkRds(aws, account, region) {
     // TODO implement
   }
 
@@ -320,106 +206,84 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     return this.forTestAccount(this.checkVolumes.bind(this));
   }
 
-  getCount() {
+  async getCount() {
     let globalCount = 0;
-    return this.forEachAccountRegion((aws, account, region) => {
-      return new aws.EC2().describeInstances().promise().then((res) => {
-        let count = 0;
-        for (let i in res.Reservations) {
-          count += res.Reservations[i].Instances.length
-        }
-        globalCount += count;
-        console.log('\t\tInstances:', count, account, region);
-      });
-    }).then(() => {
-      console.log('Global count of instances:', globalCount);
+    await this.forEachAccountRegion(async (aws, account, region) => {
+      let res = await new aws.EC2().describeInstances().promise();
+      let count = 0;
+      for (let i in res.Reservations) {
+        count += res.Reservations[i].Instances.length
+      }
+      globalCount += count;
+      this.log('INFO', '\t\tInstances:', count, account, region);
     });
+    this.log('INFO', 'Global count of instances:', globalCount);
   }
 
-  _handleRegionalServices(aws, account, region) {
-    return this._handleConfigurers(aws, account, region).then(() => {
-      console.log('Check EC2 Instances');
-      return this.checkInstances(aws, account, region)
-    }).then(() => {
-      console.log('Check EC2 Volumes');
-      return this.checkVolumes(aws, account, region);
-    }).then(() => {
-      console.log('Check EC2 Snapshots');
-      return this.checkSnapshots(aws, account, region);
-    }).then(() => {
-      console.log('Check EC2 SecurityGroups');
-      return this.checkSecurityGroups(aws, account, region);
-    }).then(() => {
-      console.log('Check EC2 AMIs');
-      return this.checkAMIs(aws, account, region);
-    }).then(() => {
-      console.log('Check EC2 EIPs');
-      return this.checkEIPs(aws, account, region);
-    }).then(() => {
-      console.log('Check EC2 NetworkInterface');
-      return this.checkNetworkInterfaces(aws, account, region);
-    }).then(() => {
-      console.log('Check EC2 CustomerGateways');
-      return this.checkCustomerGateways(aws, account, region);
-    }).then(() => {
-      console.log('Check EC2 InternetGateways');
-      return this.checkInternetGateways(aws, account, region);
-    }).then(() => {
-      console.log('Check EC2 NatGateways');
-      return this.checkNatGateways(aws, account, region);
-    }).then(() => {
-      console.log('Check EC2 Subnets');
-      return this.checkSubnets(aws, account, region);
-    }).then(() => {
-      console.log('Check EC2 Vpcs');
-      return this.checkVpcs(aws, account, region);
-    });
+  async _handleRegionalServices(aws, account, region) {
+    await this._handleConfigurers(aws, account, region);
+    this.log('INFO', 'Check EC2 Instances');
+    await this.checkInstances(aws, account, region);
+    this.log('INFO', 'Check EBS Volumes');
+    await this.checkVolumes(aws, account, region);
+    this.log('INFO', 'Check EBS Snapshots');
+    await this.checkSnapshots(aws, account, region);
+    this.log('INFO', 'Check SecurityGroups');
+    await this.checkSecurityGroups(aws, account, region);
+    this.log('INFO', 'Check AMIs');
+    await this.checkAMIs(aws, account, region);
+    this.log('INFO', 'Check EIPs');
+    await this.checkEIPs(aws, account, region);
+    this.log('INFO', 'Check NetworkInterface');
+    await this.checkNetworkInterfaces(aws, account, region);
+    this.log('INFO', 'Check CustomerGateways');
+    await this.checkCustomerGateways(aws, account, region);
+    this.log('INFO', 'Check InternetGateways');
+    await this.checkInternetGateways(aws, account, region);
+    this.log('INFO', 'Check NatGateways');
+    await this.checkNatGateways(aws, account, region);
+    this.log('INFO', 'Check Subnets');
+    await this.checkSubnets(aws, account, region);
+    this.log('INFO', 'Check Vpcs');
+    await this.checkVpcs(aws, account, region);
   }
 
-  _handleConfigurers(aws, account, region) {
-    let promise = Promise.resolve();
-    this._configurers.forEach((service) => {
-      promise = promise.then(() => {
-        console.log('Launch global configurer', service._name);
-        return service.configure(aws, account, region);
-      });
-    });
-    return promise;
+  async _handleConfigurers(aws, account, region) {
+    for (let i in this._configurers) {
+      let service = this._configurers[i];
+      this.log('INFO', 'Launch global configurer', service._name);
+      await service.configure(aws, account, region);
+    }
   }
 
-  _handleGlobalConfigurers(aws, account) {
-    let promise = Promise.resolve();
-    this._globalConfigurers.forEach((service) => {
-      promise = promise.then(() => {
-        console.log('Launch global configurer', service._name);
-        return service.configure(aws, account);
-      });
-    });
-    return promise;
+  async _handleGlobalConfigurers(aws, account) {
+    for (let i in this._globalConfigurers) {  
+      let service = this._globalConfigurers[i];
+      this.log('INFO', 'Launch global configurer', service._name);
+      await service.configure(aws, account);
+    }
   }
 
-  _handleGlobalServices(aws, account) {
-    return this._handleGlobalConfigurers(aws, account).then(() => {
-      console.log('Check S3 Buckets');
-      return this.checkS3(aws, account);
-    }).then(() => {
-      console.log('Check IAM Users');
-      return this.checkIAMUsers(aws, account);
-    });
+  async _handleGlobalServices(aws, account) {
+    await this._handleGlobalConfigurers(aws, account);
+    this.log('INFO', 'Check S3 Buckets');
+    await this.checkS3(aws, account);
+    this.log('INFO', 'Check IAM Users');
+    await this.checkIAMUsers(aws, account);
   }
 
   _handleResults() {
     // Should be exported as CronChecker saver ( DynamoDB / File / Console )
-    console.log('\nMetrics');
+    this.log('INFO', '\nMetrics');
     this._metrics.timestamp = (new Date()).getTime();
     this._metrics.elapsed = this._metrics.timestamp - this._elapsed;
     for (let i in this._metrics) {
       if (typeof(this._metrics[i]) === 'object') {
         for (let j in this._metrics[i]) {
-          console.log('[' + i + '][' + j + ']:', this._metrics[i][j]);
+          this.log('INFO', '[' + i + '][' + j + ']:', this._metrics[i][j]);
         }
       } else {
-        console.log('[' + i + ']:', this._metrics[i]);
+        this.log('INFO', '[' + i + ']:', this._metrics[i]);
       }
     }
 
@@ -442,7 +306,6 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
       esData.body.accountName = this.getAccountName(i);
       esData.body.accountId = i;
       esData.body.metricsTime = moment(metrics.timestamp).format('YYYY-MM-DDTHH:mm:ss') + 'Z';
-      console.log(esData);
       promises.push(this._es.create(esData));
     }
     //return Promise.resolve();
@@ -451,7 +314,6 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
 
   indexFiles() {
     let files = fs.readdirSync('./logs');
-    console.log(files);
     let promises = [];
     files.forEach((file) => {
       let obj = JSON.parse(fs.readFileSync('./logs/' + file));
@@ -466,8 +328,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   }
 
   async install(resources) {
-    console.log('Should install with', resources);
-    process.exit(0);
+
   }
 
   async validate() {

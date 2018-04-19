@@ -36,13 +36,13 @@ export default class Validator extends Service {
     if (value) {
       if (resource.getTag(tagName) !== value) {
         tags[tagName] = value;
-        console.log('Tagging', resource.getId(), tagName, 'with', value);
+        this.log('INFO', 'Tagging', resource.getId(), tagName, 'with', value);
         return resource.tag(tags);
       }
     } else {
       if (resource.getTag(tagName) !== value) {
         tags[tagName] = resource.getTag(tagName);
-        console.log('UnTagging', resource.getId(), 'from', tagName);
+        this.log('INFO', 'UnTagging', resource.getId(), 'from', tagName);
         return resource.untag(tags)
       }
     }

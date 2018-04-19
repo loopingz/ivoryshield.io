@@ -94,7 +94,7 @@ function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
     }
 
     async forTestAccount(callback, label = '') {
-      console.log('Executing', label, 'on test account');
+      this.log('INFO', label, 'on test account');
       let account = '254525589362';
       let region = 'us-east-1';
       let aws = await this._getAWSForAccount(account, region);
@@ -107,7 +107,7 @@ function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
       for (let i in accounts) {
         let act = accounts[i];
         let actNum = this._params.accounts[act];
-        console.log('Executing', label, 'on account', act.Name, '(' + act.Id + ')');
+        this.log('INFO', label, 'on account', act.Name, '(' + act.Id + ')');
         let params;
         let tok = await this._sts.assumeRole({
           DurationSeconds: 3600,
@@ -135,7 +135,7 @@ function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
           aws.config.update({
             region: region.RegionName
           });
-          console.log('\ton region', region.RegionName);
+          this.log('INFO', '\ton region', region.RegionName);
           await callback(aws, account, region.RegionName);
         }
       }, label);

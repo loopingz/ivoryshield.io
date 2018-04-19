@@ -119,7 +119,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     webdaConfig.services['IvoryShield/AccountsService'] = {};
 
     if (!this._config.deployment.subnets || !this._config.deployment.taskRole || !this._config.deployment.securityGroup) {
-      console.log('Missing deployment required configuration');
+      this.log('WARN', 'Missing deployment required configuration');
       //return;
     }
     let unit: any = {
@@ -184,10 +184,9 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     if (ctx._route._http.method === 'GET') {
       // Get map of configurers
       let validators = this.getServicesImplementations(Validator);
-      console.log('validators', Object.keys(validators), validators['Nuxeo/IAM'], validators);
       Object.keys(validators).map((key, index) => {
         if (!validators[key]) {
-          console.log('Cannot find validator', key);
+          this.log('WARN', 'Cannot find validator', key);
           return;
         }
         validators[key].enable = this._config.validators[key] !== undefined;
@@ -345,7 +344,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     return this.mainAccount.then((acc) => {
       mainAccount = acc;
     }).catch((err) => {
-      console.log('Cannot get the main account');
+      this.log('WARN', 'Cannot get the main account');
     }).then(() => {
       ctx.write({
         mainAccount: mainAccount,

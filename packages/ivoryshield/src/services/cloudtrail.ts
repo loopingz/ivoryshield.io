@@ -35,7 +35,7 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
     this._aws = this._getAWS();
     this._s3 = new(this._getAWS()).S3();
     if (this._params.elasticsearch) {
-      console.log('Creating ES client to', this._params.elasticsearch);
+      this.log('DEBUG', 'Creating ES client to', this._params.elasticsearch);
       this._es = new elasticsearch.Client({
         host: this._params.elasticsearch
       });
@@ -65,7 +65,7 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
   }
 
   test(evtFile) {
-    console.log('Testing event from', evtFile);
+    this.log('INFO', 'Testing event from', evtFile);
     return this.processTrailEvent(JSON.parse(fs.readFileSync(evtFile)));
   }
 
@@ -80,7 +80,7 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
     let promise = Promise.resolve();
     if (this._es) {
       promise = this.saveEvent(evt).catch(() => {
-        console.log('Could not indexed', evt.eventID, evt.eventName);
+        this.log('WARN', 'Could not indexed', evt.eventID, evt.eventName);
         return Promise.resolve();
       });
     }
@@ -91,10 +91,10 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
     }).catch((err) => {
       if (err.code && err.code.indexOf('NotFound') >= 0) {
         // The resource does not exist anymore
-        console.log('Resource vanished', evt.eventID);
+        this.log('DEBUG', 'Resource vanished', evt.eventID);
         return Promise.resolve();
       }
-      console.log('Event error', evt.eventID, err.message);
+      this.log('ERROR', 'Event error', evt.eventID, err.message);
       // Dont loop over n over
       return Promise.resolve(err);
     });
