@@ -215,11 +215,11 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     if (service instanceof Configurer) {
       if (service.isGlobal()) {
         await this.forEachAccount(async (aws, account) => {
-          (<Configurer> service).configure(aws, account);
+          ( < Configurer > service).configure(aws, account);
         }, serviceName);
       } else {
         await this.forEachAccountRegion(async (aws, account, region) => {
-          (<Configurer> service).configure(aws, account, region);
+          ( < Configurer > service).configure(aws, account, region);
         }, serviceName);
       }
       return;

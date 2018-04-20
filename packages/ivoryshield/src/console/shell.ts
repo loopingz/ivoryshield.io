@@ -422,7 +422,10 @@ export default class IvoryShieldConsole extends WebdaConsole {
 
   static parser(args) {
     const argv = require('yargs');
-    return argv.option('commit', {type: 'boolean', alias: 'c'}).parse(args);
+    return argv.option('commit', {
+      type: 'boolean',
+      alias: 'c'
+    }).alias('d', 'deployment').parse(args);
   }
 
   static logo(lines = []) {
@@ -440,6 +443,9 @@ export default class IvoryShieldConsole extends WebdaConsole {
 
   static config(argv) {
     this.generateModule();
+    if (argv.deployment) {
+      return super.config(argv);
+    }
     let webda = new IvoryShieldConfigurationServer();
     return new Promise(() => {
       webda.serve(18181, argv.open);
@@ -491,8 +497,8 @@ export default class IvoryShieldConsole extends WebdaConsole {
         return this.check(argv);
       case 'deploy':
         return this.deploy(argv);
-       case 'test':
-         return this.test(argv);
+      case 'test':
+        return this.test(argv);
       case 'help':
       default:
         return this.help();
