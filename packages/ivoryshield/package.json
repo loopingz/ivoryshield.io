@@ -35,7 +35,7 @@
     "jsonpath": "^1.0.0",
     "open": "0.0.5",
     "webda": "^0.9.1",
-    "webda-shell": "~0.9.2",
+    "webda-shell": "~0.9.3",
     "yargs": "^11.0.0"
   },
   "devDependencies": {
