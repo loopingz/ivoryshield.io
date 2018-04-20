@@ -202,8 +202,29 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   }
 
 
-  test() {
-    return this.forTestAccount(this.checkVolumes.bind(this));
+  async test(serviceName: string) {
+    if (!serviceName) {
+      this.log('WARN', 'Nothing to test');
+      return;
+    }
+    let service = this.getService(serviceName);
+    if (!service) {
+      this.log('WARN', 'The service', serviceName, 'does not exist');
+      return;
+    }
+    if (service instanceof Configurer) {
+      if (service.isGlobal()) {
+        await this.forEachAccount(async (aws, account) => {
+          (<Configurer> service).configure(aws, account);
+        }, serviceName);
+      } else {
+        await this.forEachAccountRegion(async (aws, account, region) => {
+          (<Configurer> service).configure(aws, account, region);
+        }, serviceName);
+      }
+      return;
+    }
+    this.log('WARN', 'You can only test Configurer or Validator', service);
   }
 
   async getCount() {

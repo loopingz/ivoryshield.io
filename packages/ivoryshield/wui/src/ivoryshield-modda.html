@@ -10,6 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/webda-model-schema/webda-model-boolean.html">
 <link rel="import" href="../bower_components/webda-model-schema/webda-model-string.html">
@@ -40,9 +41,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         @apply(--layout-horizontal);
         @apply(--layout-justified);
       }
+      .title {
+        @apply(--layout-horizontal);
+        @apply(--layout-justified);
+      }
+      .actions {
+        display: none;
+      }
     </style>
     <div class="card">
-      <div class="title">[[modda.label]]</div>
+      <div class="title">
+        <div>[[modda.label]]</div>
+        <div class="actions"><paper-icon-button icon="launch" title="Test"></paper-icon-button></div>
+      </div>
       <div class="description">[[modda.description]]</div>
       <template is="dom-if" if="[[modda.enable]]">
         <div class="buttons">

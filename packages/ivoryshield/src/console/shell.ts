@@ -416,12 +416,13 @@ export default class IvoryShieldConsole extends WebdaConsole {
     lines.push('check'.bold + ' perform a local check of the environment');
     lines.push('install'.bold + ' setup your AWS accounts');
     lines.push('deploy'.bold + ' deploy your new configuration');
+    lines.push('test'.bold + ' test a configurer or a validator');
     return this.logo(lines);
   }
 
   static parser(args) {
     const argv = require('yargs');
-    return argv.parse(args);
+    return argv.option('commit', {type: 'boolean', alias: 'c'}).parse(args);
   }
 
   static logo(lines = []) {
@@ -447,10 +448,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
 
   static check(argv) {
     this.generateModule();
-    let webda = new IvoryShieldConfigurationServer();
-    let configurationService = < ConfigurationService > webda.getService('configuration');
-    //new ConfigurationService(webda, 'ivoryshield', {});
-    configurationService.generateWebdaConfiguration();
+    this.initWebda();
     return super.worker({
       deployment: 'ivoryshield',
       _: ['worker', 'IvoryShield/CronCheckerService']
@@ -459,15 +457,29 @@ export default class IvoryShieldConsole extends WebdaConsole {
 
   static deploy(argv) {
     this.generateModule();
-    let webda = new IvoryShieldConfigurationServer();
-    let configurationService = new ConfigurationService(webda, 'ivoryshield', {});
-    configurationService.init({});
-    configurationService.generateWebdaConfiguration();
+    this.initWebda();
     // Deploy on AWS through Webda
     return super.deploy({
       deployment: 'ivoryshield',
       _: []
     });
+  }
+
+  static initWebda() {
+    let webda = new IvoryShieldConfigurationServer();
+    let configurationService = < ConfigurationService > webda.getService('configuration');
+    //new ConfigurationService(webda, 'ivoryshield', {});
+    configurationService.generateWebdaConfiguration();
+  }
+
+  static test(argv) {
+    this.initWebda();
+    let args = ['worker', 'IvoryShield/CronCheckerService', 'test'];
+    args = args.concat(argv._.slice(1));
+    return super.worker({
+      deployment: 'ivoryshield',
+      _: args
+    })
   }
 
   static handleCommand(args) {
@@ -479,6 +491,8 @@ export default class IvoryShieldConsole extends WebdaConsole {
         return this.check(argv);
       case 'deploy':
         return this.deploy(argv);
+       case 'test':
+         return this.test(argv);
       case 'help':
       default:
         return this.help();
