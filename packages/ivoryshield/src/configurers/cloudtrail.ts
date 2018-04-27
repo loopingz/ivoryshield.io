@@ -178,13 +178,39 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
       //process.exit(0);
       let notification;
       if (!notification) {
-        let queueArn = (await sqs.getQueueAttributes({
+        let queue = (await sqs.getQueueAttributes({
           QueueUrl: currentQueue,
-          AttributeNames: ['QueueArn']
-        }).promise()).Attributes.QueueArn;
+          AttributeNames: ['QueueArn', 'Policy']
+        }).promise()).Attributes;
+        if (!queue.Policy) {
+          let policy = {
+            "Version": "2012-10-17",
+            "Id": "arn:aws:sqs:" + mainRegion + ":" + account.Id + ":" + this._params.cloudTrailQueue + "/SQSDefaultPolicy",
+            "Statement": [
+              {
+                "Sid": "Ivoryshield",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "SQS:SendMessage",
+                "Resource": "arn:aws:sqs:" + mainRegion + ":" + account.Id + ":" + this._params.cloudTrailQueue,
+                "Condition": {
+                  "ArnLike": {
+                    "aws:SourceArn": "arn:aws:s3:*:*:" + this._params.s3Bucket
+                  }
+                }
+              }
+            ]
+          };
+          await sqs.setQueueAttributes({
+            QueueUrl: currentQueue,
+            Attributes: {
+              'Policy': JSON.stringify(policy)
+            }
+          }).promise();
+        }
         notifications.QueueConfigurations.push({
           Events: ['s3:ObjectCreated:*'],
-          QueueArn: queueArn
+          QueueArn: queue.QueueArn
         });
         await s3.putBucketNotificationConfiguration({
           Bucket: this._params.s3Bucket,
