@@ -173,6 +173,24 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
         currentQueue = (await sqs.createQueue({QueueName: this._params.cloudTrailQueue}).promise()).QueueUrl;
       }
       this.log('DEBUG', 'Checking S3 Events are configured correctly', currentQueue);
+      let notifications = (await s3.getBucketNotificationConfiguration({Bucket: this._params.s3Bucket}).promise());
+      //this.log('DEBUG', notifications, currentQueue,);
+      //process.exit(0);
+      let notification;
+      if (!notification) {
+        let queueArn = (await sqs.getQueueAttributes({
+          QueueUrl: currentQueue,
+          AttributeNames: ['QueueArn']
+        }).promise()).Attributes.QueueArn;
+        notifications.QueueConfigurations.push({
+          Events: ['s3:ObjectCreated:*'],
+          QueueArn: queueArn
+        });
+        await s3.putBucketNotificationConfiguration({
+          Bucket: this._params.s3Bucket,
+          NotificationConfiguration: notifications
+        }).promise();
+      }
       if (this._params.s3BackupBucket) {
         // Setup bucket replication
         let replication;
