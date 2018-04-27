@@ -47,20 +47,17 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
       });
       this._params.elasticsearchIndex = this._params.elasticsearchIndex || 'metrics';
     }
-    this._params.configurers.forEach((configurer) => {
-      let service = < Configurer > this.getService(configurer);
-      if (!service || !service.configure || !service.isGlobal) {
-        this.log('WARN', 'Service', configurer, 'should implement configure and isGlobal method');
-        return;
-      }
+    let configurers = < Configurer[] > this._webda.getServicesImplementations(Configurer);
+    for (let i in configurers) {
+      let service = < Configurer > configurers[i];
       if (service.isGlobal()) {
-        this.log('DEBUG', 'Adding global configurer: ', configurer);
-        this._globalConfigurers.push( < Configurer > this.getService(configurer));
+        this.log('DEBUG', 'Adding global configurer: ', service._name);
+        this._globalConfigurers.push(service);
       } else {
-        this.log('DEBUG', 'Adding configurer: ', configurer);
-        this._configurers.push( < Configurer > this.getService(configurer));
+        this.log('DEBUG', 'Adding configurer: ', service._name);
+        this._configurers.push(service);
       }
-    });
+    }
   }
 
   listAssumeRole() {
@@ -272,6 +269,9 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   async _handleConfigurers(aws, account, region) {
     for (let i in this._configurers) {
       let service = this._configurers[i];
+      if (!service.isEnableOn(account, region)) {
+        continue;
+      }
       this.log('INFO', 'Launch global configurer', service._name);
       await service.configure(aws, account, region);
     }
@@ -280,6 +280,9 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   async _handleGlobalConfigurers(aws, account) {
     for (let i in this._globalConfigurers) {
       let service = this._globalConfigurers[i];
+      if (!service.isEnableOn(account)) {
+        continue;
+      }
       this.log('INFO', 'Launch global configurer', service._name);
       await service.configure(aws, account);
     }
@@ -344,8 +347,8 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   }
 
   async configure() {
-    await this.forEachAccountRegion(this._handleConfigurers.bind(this), 'Regional configurers');
     await this.forEachAccount(this._handleGlobalConfigurers.bind(this), 'Global configurers');
+    await this.forEachAccountRegion(this._handleConfigurers.bind(this), 'Regional configurers');
   }
 
   async install(resources) {

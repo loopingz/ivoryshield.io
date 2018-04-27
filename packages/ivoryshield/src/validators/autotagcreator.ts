@@ -24,9 +24,6 @@ export default class AutoTagCreatorValidator extends Validator {
       "uuid": "IvoryShield/AutoTagCreator",
       "label": "AutoTagCreator",
       "description": "Add a tag to any resources created with the creator of the resource",
-      "webcomponents": [],
-      "logo": "images/icons/dynamodb.png",
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
       "configuration": {
         "schema": {
           type: "object",

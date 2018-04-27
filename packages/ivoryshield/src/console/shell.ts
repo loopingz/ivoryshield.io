@@ -88,7 +88,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     this.reinitClients();
   }
 
-  generateWebdaConfiguration() {
+  generateWebdaConfiguration(pretend: boolean) {
     let webdaConfig = {
       version: 1,
       routes: {},
@@ -108,6 +108,9 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
       webdaConfig.parameters[id] = this._config.credentials[id];
     }
     webdaConfig.parameters['accounts'] = this._config.accounts;
+    webdaConfig.parameters['pretend'] = pretend;
+    webdaConfig.parameters['mainAccount'] = this._config.deployment.mainAccount;
+    webdaConfig.parameters['deployment'] = this._config.deployment;
     for (let id in this._config.configurers) {
       webdaConfig.services[id] = this._config.configurers[id];
     }
@@ -117,6 +120,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     webdaConfig.services['IvoryShield/ValidatorService'] = {};
     webdaConfig.services['IvoryShield/CronCheckerService'] = {};
     webdaConfig.services['IvoryShield/AccountsService'] = {};
+    webdaConfig.services['IvoryShield/CloudTrailService'] = {};
 
     if (!this._config.deployment.subnets || !this._config.deployment.taskRole || !this._config.deployment.securityGroup) {
       this.log('WARN', 'Missing deployment required configuration');
@@ -454,7 +458,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
 
   static check(argv) {
     this.generateModule();
-    this.initWebda();
+    this.initWebda(!argv.commit);
     return super.worker({
       deployment: 'ivoryshield',
       _: ['worker', 'IvoryShield/CronCheckerService']
@@ -463,7 +467,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
 
   static deploy(argv) {
     this.generateModule();
-    this.initWebda();
+    this.initWebda(false);
     // Deploy on AWS through Webda
     return super.deploy({
       deployment: 'ivoryshield',
@@ -471,11 +475,11 @@ export default class IvoryShieldConsole extends WebdaConsole {
     });
   }
 
-  static initWebda() {
+  static initWebda(pretend: boolean = true) {
     let webda = new IvoryShieldConfigurationServer();
     let configurationService = < ConfigurationService > webda.getService('configuration');
     //new ConfigurationService(webda, 'ivoryshield', {});
-    configurationService.generateWebdaConfiguration();
+    configurationService.generateWebdaConfiguration(pretend);
   }
 
   static test(argv) {
@@ -499,6 +503,8 @@ export default class IvoryShieldConsole extends WebdaConsole {
         return this.deploy(argv);
       case 'test':
         return this.test(argv);
+      case 'worker':
+        return this.worker(argv);
       case 'help':
       default:
         return this.help();

@@ -48,7 +48,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style include="iron-flex shared-styles">
       :host {
         --app-primary-color: #4285f4;
-        --app-secondary-color: black;
+        --app-secondary-color: #666666;
         --app-background-color: #add2dd;
         --app-light-background-color: #fefdf8;
         --app-accent-color: #1c4e7c;
@@ -289,6 +289,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-right: 20px;
       }
 
+
+      .columns {
+        display: flex;
+        min-width: 600px;
+        @apply(--layout-horizontal);
+        @apply(--layout-justified);
+      }
+
+      .columns > * {
+        border-left: 1px solid var(--app-buttons);
+        padding: 20px;
+        min-width: 300px;
+      }
+
+      .columns > *:first-child {
+        border-left: 0px;
+      }
+
       @media(max-width: 920px) {
         paper-icon-button[icon="menu"] {
           display: block;
@@ -310,6 +328,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         app-toolbar li[name='summary'].iron-selected a {
           content: 'Summary'
         }
+        .columns {
+          @apply(--layout-vertical);
+        }
+        .columns > * {
+          padding: 0px;
+          border-left: 0px;
+        }
       }
       @media(min-width: 921px) {
         app-toolbar > div {
@@ -318,6 +343,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         app-toolbar li[name='summary'] span {
           display: none;
         }
+      }
+      app-drawer a {
+        color: #666666;
       }
       app-drawer a.iron-selected {
         color: var(--app-accent-color);
@@ -338,7 +366,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         border-top: 0px;
         margin: 10px 20px;
       }
-
       @media print {
         app-header-layout {
           background-color: white;
@@ -449,8 +476,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <paper-dialog id="deployment" modal>
       <h2>Deployment configuration</h2>
       <paper-dialog-scrollable>
-      <div>
+      <div class="columns">
         <webda-model-object value="{{deployment}}" schema="[[deploymentSchema]]" edit-mode></webda-model-object>
+        <webda-model-object value="{{deployment}}" schema="[[deployment2Schema]]" edit-mode></webda-model-object>
       </div>
       </paper-dialog-scrollable>
       <div class="buttons"><paper-button dialog-dismiss>Cancel</paper-button><paper-button class="primary" dialog-confirm on-tap="_saveDeployment">Save</paper-button></div>
@@ -529,6 +557,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 "securityGroup": {
                   type: "string",
                   title: "Security Group"
+                }
+              }
+            }
+          },
+          deployment2Schema: {
+            type: Object,
+            value: {
+              "type": "object",
+              "properties": {
+                "mainAccount": {
+                  type: "string",
+                  title: "Account # to install in"
+                },
+                "mainRegion": {
+                  type: "string",
+                  title: "Main region",
+                  default: "us-east-1"
+                },
+                "backupRegion": {
+                  type: "string",
+                  title: "Backup region",
+                  default: "eu-west-1"
                 },
                 "cronLauncherLambda": {
                   type: "string",

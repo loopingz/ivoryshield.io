@@ -4,6 +4,13 @@ import {
 
 export default class ElkSetup extends Configurer {
 
+  isEnableOn(account, region) {
+    return this._accounts.isMainAccount(account.Id);
+  }
+
+  async configure(aws, account, region = undefined) {
+    this.log('DEBUG', 'Should ELK setup once on', account.Name, 'with', this._params.elasticsearchName, this._params.storageSpace);
+  }
 
   static getModda() {
     return {

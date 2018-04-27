@@ -26,15 +26,25 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
     this.staticConfiguration = this._params.accounts !== undefined;
     if (this.staticConfiguration) {
       this.accounts = this._params.accounts;
+      this.sortAccounts();
     } else {
       this.organization = this.refreshOrganization();
     }
+  }
+
+  sortAccounts() {
+    this.accounts.sort((a, b) => {
+      if (this.isMainAccount(a.Id)) return -1;
+      if (this.isMainAccount(b.Id)) return 1;
+      return a.Name.localeCompare(b.Name);
+    });
   }
 
   async refreshOrganization() {
     this.expire = new Date().getTime() + this.delay * 1000;
     return new(this._aws.Organizations)().listAccounts({}).promise().then((res) => {
       this.accounts = res.Accounts;
+      this.sortAccounts();
     });
   }
 
@@ -45,6 +55,10 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
 
   isExpired() {
     return this.expire < new Date().getTime() + this.delay * 1000;
+  }
+
+  isMainAccount(account) {
+    return account === this._params.mainAccount;
   }
 
   async getAccounts(): Promise < any > {

@@ -21,26 +21,36 @@ const elasticsearch = require('elasticsearch');
 const PromiseUtil = require("bluebird");
 
 
-export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
+export default class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
 
   _events: number;
   _counter: number;
   _s3: S3;
   _es: any;
+  _cloudtrailSetup: Service;
+  _elkSetup: Service;
   _validatorService: ValidatorService;
 
   init(config) {
     super.init(config);
-    this._validatorService = < ValidatorService > this.getService('ValidatorService');
+    this._validatorService = < ValidatorService > this.getService('IvoryShield/ValidatorService');
+    this._cloudtrailSetup = < Service > this.getService('IvoryShield/CloudTrailSetup');
+    if (!this._cloudtrailSetup) {
+      return;
+    }
+    this._elkSetup = < Service > this.getService('IvoryShield/ELKSetup');
     this._aws = this._getAWS();
     this._s3 = new(this._getAWS()).S3();
-    if (this._params.elasticsearch) {
-      this.log('DEBUG', 'Creating ES client to', this._params.elasticsearch);
+    if (this._elkSetup) {
       this._es = new elasticsearch.Client({
         host: this._params.elasticsearch
       });
       this._params.elasticsearchIndex = this._params.elasticsearchIndex || 'logstash-';
     }
+  }
+
+  enable() {
+    return this._cloudtrailSetup !== undefined;
   }
 
   work() {
@@ -156,4 +166,8 @@ export class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
     return this._es.create(esData);
   }
 
+}
+
+export {
+  CloudTrailService
 }

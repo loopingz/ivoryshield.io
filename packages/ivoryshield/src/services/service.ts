@@ -7,6 +7,10 @@ import {
 
 export default class Service extends WebdaService {
 
+  async getMainAccount() {
+    return this._params.mainAccount;
+  }
+
   async getAccounts(): Promise < any > {
     return ( < AccountsService > this.getService('IvoryShield/AccountsService')).getAccounts();
   }
@@ -16,7 +20,10 @@ export default class Service extends WebdaService {
   }
 
   pretend(): boolean {
-    return this._params.pretend || true;
+    if (this._params.pretend !== undefined) {
+      return this._params.pretend;
+    }
+    return true;
   }
 }
 

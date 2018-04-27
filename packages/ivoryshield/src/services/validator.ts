@@ -53,7 +53,7 @@ export default class ValidatorService extends Service {
         }
       } catch (err) {
         // Dont fail if one validator fail
-        console.log('Validator', validator._name, 'had an issue', err.message);
+        this.log('WARN', 'Validator', validator._name, 'had an issue', err.message);
       }
       if (!this.pretend()) {
         // Resource commit)
