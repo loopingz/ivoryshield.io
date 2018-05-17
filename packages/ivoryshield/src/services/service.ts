@@ -1,14 +1,27 @@
 import {
-  Service as WebdaService
+  Service
 } from 'webda';
 import {
   AccountsService
 } from './accounts';
 
-export default class Service extends WebdaService {
-
+export default class IvoryShieldService extends Service {
+  _params: any;
   async getMainAccount() {
     return this._params.mainAccount;
+  }
+
+  init(params) {
+    super.init(params);
+    if (this.pretend()) {
+      // Will replace every method start with do by an empty one
+      Object.getOwnPropertyNames(Object.getPrototypeOf(this)).filter((prop) => {
+        //console.log(prop, typeof(this[prop]));
+        return typeof(this[prop]) === 'function' && prop.startsWith('do');
+      }).forEach((method) => {
+        this[method] = (...args) => {};
+      });
+    }
   }
 
   async getAccounts(): Promise < any > {
@@ -28,5 +41,5 @@ export default class Service extends WebdaService {
 }
 
 export {
-  Service
+  IvoryShieldService
 };

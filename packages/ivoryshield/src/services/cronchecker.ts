@@ -47,7 +47,8 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
       });
       this._params.elasticsearchIndex = this._params.elasticsearchIndex || 'metrics';
     }
-    let configurers = < Configurer[] > this._webda.getServicesImplementations(Configurer);
+    let configurers = < Map < string,
+      Configurer > > this._webda.getServicesImplementations(Configurer);
     for (let i in configurers) {
       let service = < Configurer > configurers[i];
       if (service.isGlobal()) {
@@ -201,27 +202,33 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
 
   async test(serviceName: string) {
     if (!serviceName) {
-      this.log('WARN', 'Nothing to test');
+      this.log('ERROR', 'Nothing to test');
       return;
     }
     let service = this.getService(serviceName);
     if (!service) {
-      this.log('WARN', 'The service', serviceName, 'does not exist');
-      return;
+      if (this._webda._services[serviceName]) {
+        this.log('WARN', 'Service is not enable, will create a local instance');
+        service = new this._webda._services[serviceName](this._webda, 'test', this._webda._config);
+        service.init(this._webda._config);
+      } else {
+        this.log('ERROR', 'The service', serviceName, 'does not exist');
+        return;
+      }
     }
     if (service instanceof Configurer) {
       if (service.isGlobal()) {
         await this.forEachAccount(async (aws, account) => {
-          ( < Configurer > service).configure(aws, account);
+          await ( < Configurer > service).configure(aws, account);
         }, serviceName);
       } else {
         await this.forEachAccountRegion(async (aws, account, region) => {
-          ( < Configurer > service).configure(aws, account, region);
+          await ( < Configurer > service).configure(aws, account, region);
         }, serviceName);
       }
       return;
     }
-    this.log('WARN', 'You can only test Configurer or Validator', service);
+    this.log('ERROR', 'You can only test Configurer', service);
   }
 
   async getCount() {

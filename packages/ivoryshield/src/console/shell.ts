@@ -121,6 +121,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     webdaConfig.services['IvoryShield/CronCheckerService'] = {};
     webdaConfig.services['IvoryShield/AccountsService'] = {};
     webdaConfig.services['IvoryShield/CloudTrailService'] = {};
+    webdaConfig.services['Webda/ConsoleLogger'] = {};
 
     if (!this._config.deployment.subnets || !this._config.deployment.taskRole || !this._config.deployment.securityGroup) {
       this.log('WARN', 'Missing deployment required configuration');
@@ -427,9 +428,16 @@ export default class IvoryShieldConsole extends WebdaConsole {
   static parser(args) {
     const argv = require('yargs');
     return argv.option('commit', {
-      type: 'boolean',
-      alias: 'c'
-    }).alias('d', 'deployment').parse(args);
+        type: 'boolean',
+        alias: 'c'
+      })
+      .option('log-level', {
+        default: 'ACTION'
+      })
+      .option('log-levels', {
+        default: 'ERROR, VULN, WARN, ACTION, CONSOLE, INFO, DEBUG, TRACE'
+      })
+      .alias('d', 'deployment').parse(args);
   }
 
   static logo(lines = []) {
@@ -483,7 +491,8 @@ export default class IvoryShieldConsole extends WebdaConsole {
   }
 
   static test(argv) {
-    this.initWebda();
+    this.generateModule();
+    this.initWebda(!argv.commit);
     let args = ['worker', 'IvoryShield/CronCheckerService', 'test'];
     args = args.concat(argv._.slice(1));
     return super.worker({
@@ -494,6 +503,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
 
   static handleCommand(args) {
     let argv = this.parser(args);
+    this.initLogger(argv);
     switch (argv._[0]) {
       case 'config':
         return this.config(argv);

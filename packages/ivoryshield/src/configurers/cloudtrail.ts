@@ -2,11 +2,19 @@ import {
   Configurer
 } from './configurer';
 import {
-  S3MixIn, Service, Webda
+  S3MixIn,
+  Service,
+  Webda
 } from '../services/s3-mixin';
-import { S3, Response, AWSError } from 'aws-sdk';
+import {
+  S3,
+  Response,
+  AWSError
+} from 'aws-sdk';
 
 export default class CloudTrailSetup extends S3MixIn(Configurer) {
+
+  _kmsKeyId: string;
 
   isEnableOn(account, region) {
     return true;
@@ -33,12 +41,11 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
     return false;
   }
 
-  getKMSKeyPolicy(mainAccount: string, principals:string[]) {
+  getKMSKeyPolicy(mainAccount: string, principals: string[]) {
     return {
       "Version": "2012-10-17",
       "Id": "ivoryshield-key-policy",
-      "Statement": [
-        {
+      "Statement": [{
           "Sid": "Enable IAM User Permissions",
           "Effect": "Allow",
           "Principal": {
@@ -80,6 +87,17 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
     }
   }
 
+  async doCreateKMSKey(kms, name, policy) {
+    let key = await kms.createKey({
+      Policy: policy
+    }).promise();
+    await kms.createAlias({
+      AliasName: 'alias/' + name,
+      TargetKeyId: key.KeyMetadata.KeyId
+    }).promise();
+    return key.KeyMetadata.Arn;
+  }
+
   async setupKMSKey(kms, keyName, accountId: string, principals: string[]) {
     let aliases = (await kms.listAliases().promise()).Aliases;
     let currentAlias;
@@ -91,23 +109,30 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
     if (currentAlias) {
       return currentAlias.AliasArn.substr(0, currentAlias.AliasArn.lastIndexOf(':')) + ':key/' + currentAlias.TargetKeyId;
     }
-    let key = await kms.createKey({Policy: JSON.stringify(this.getKMSKeyPolicy(accountId, principals))}).promise();
-    await kms.createAlias({AliasName: 'alias/' + keyName, TargetKeyId: key.KeyMetadata.KeyId}).promise();
-    return key.KeyMetadata.Arn;
+    this.log('ACTION', 'Will create a new KMS key on', accountId, 'with alias', keyName);
+    if (this.pretend()) {
+      return 'arn:fakekms:key';
+    }
+    this.doCreateKMSKey(kms, keyName, JSON.stringify(this.getKMSKeyPolicy(accountId, principals)));
   }
 
   async configure(aws, account, region = undefined) {
+    let backupRegion = this._params.backupRegion || 'eu-west-1';
+    let mainRegion = this._params.mainRegion || 'us-east-1';
     if (this._accounts.isMainAccount(account.Id)) {
-      let principals : string[] = [];
+      let principals: string[] = [];
       if (this._params.deployment.taskRole) {
-        principals.push(this._params.deployment.taskRole);  
+        principals.push(this._params.deployment.taskRole);
       }
-      let backupRegion = this._params.backupRegion || 'eu-west-1';
-      let mainRegion = this._params.mainRegion || 'us-east-1';
+
       // Work on the backup region first
-      let kms = new aws.KMS({region: backupRegion});
+      let kms = new aws.KMS({
+        region: backupRegion
+      });
       let kmsArn = await this.setupKMSKey(kms, this._params.kmsKeyName, account.Id, principals);
-      let s3 = new aws.S3({region: backupRegion});
+      let s3 = new aws.S3({
+        region: backupRegion
+      });
       this.log('DEBUG', 'Should Trail bucket setup once on', account);
       // Setup Backup bucket
       if (this._params.s3BackupBucket) {
@@ -117,14 +142,12 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
         // Enable encryption
         if (!(await this.bucketHasEncryption(s3, this._params.s3BackupBucket))) {
           let configuration = {
-            Rules: [
-              {
-                ApplyServerSideEncryptionByDefault: {
-                  SSEAlgorithm: 'aws:kms',
-                  KMSMasterKeyID: kmsArn
-                }
+            Rules: [{
+              ApplyServerSideEncryptionByDefault: {
+                SSEAlgorithm: 'aws:kms',
+                KMSMasterKeyID: kmsArn
               }
-            ]
+            }]
           };
           await this.bucketSetEncryption(s3, this._params.s3BackupBucket, configuration);
         }
@@ -135,23 +158,26 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
       }
 
       // Setup main bucket
-      kms = new aws.KMS({region: mainRegion});
+      kms = new aws.KMS({
+        region: mainRegion
+      });
       kmsArn = await this.setupKMSKey(kms, this._params.kmsKeyName, account.Id, principals);
-      s3 = new aws.S3({region: mainRegion});
+      s3 = new aws.S3({
+        region: mainRegion
+      });
       if (!(await this.bucketExists(s3, this._params.s3Bucket))) {
         await this.bucketCreate(s3, this._params.s3Bucket);
       }
+      this._kmsKeyId = kmsArn;
       // Enable encryption
       if (!(await this.bucketHasEncryption(s3, this._params.s3Bucket))) {
         let configuration = {
-          Rules: [
-            {
-              ApplyServerSideEncryptionByDefault: {
-                SSEAlgorithm: 'aws:kms',
-                KMSMasterKeyID: kmsArn
-              }
+          Rules: [{
+            ApplyServerSideEncryptionByDefault: {
+              SSEAlgorithm: 'aws:kms',
+              KMSMasterKeyID: kmsArn
             }
-          ]
+          }]
         };
         await this.bucketSetEncryption(s3, this._params.s3Bucket, configuration);
       }
@@ -159,69 +185,91 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
       if (!(await this.bucketHasVersioning(s3, this._params.s3Bucket))) {
         await this.bucketSetVersioning(s3, this._params.s3Bucket);
       }
-      this.log('DEBUG', 'Create cloudtrail queue', this._params.cloudTrailQueue);
       let sqs = new aws.SQS();
       let queues = (await sqs.listQueues().promise()).QueueUrls;
       let currentQueue;
-      queues.forEach( (queue) => {
+      queues.forEach((queue) => {
         if (queue.endsWith('/' + this._params.cloudTrailQueue)) {
           currentQueue = queue;
         }
       });
       if (!currentQueue) {
-        this.log('DEBUG', 'Creating the queue', this._params.cloudTrailQueue); 
-        currentQueue = (await sqs.createQueue({QueueName: this._params.cloudTrailQueue}).promise()).QueueUrl;
+        this.log('DEBUG', 'Create the queue', this._params.cloudTrailQueue);
+        if (this.pretend()) {
+          currentQueue = `https://sqs.${region}.amazonaws.com/${account.Id}/${this._params.cloudTrailQueue}`;
+          this.log('DEBUG', 'Fake queue is', currentQueue);
+        } else {
+          currentQueue = (await sqs.createQueue({
+            QueueName: this._params.cloudTrailQueue
+          }).promise()).QueueUrl;
+        }
       }
-      this.log('DEBUG', 'Checking S3 Events are configured correctly', currentQueue);
-      let notifications = (await s3.getBucketNotificationConfiguration({Bucket: this._params.s3Bucket}).promise());
-      //this.log('DEBUG', notifications, currentQueue,);
-      //process.exit(0);
-      let notification;
-      if (!notification) {
-        let queue = (await sqs.getQueueAttributes({
+      let queue;
+      if (!this.pretend()) {
+        queue = (await sqs.getQueueAttributes({
           QueueUrl: currentQueue,
           AttributeNames: ['QueueArn', 'Policy']
         }).promise()).Attributes;
+      } else {
+        queue = {};
+      }
+      this.log('DEBUG', 'Checking S3 Events are configured correctly', currentQueue);
+      let notifications = (await s3.getBucketNotificationConfiguration({
+        Bucket: this._params.s3Bucket
+      }).promise());
+      let notification;
+      notifications.QueueConfigurations.forEach((notif) => {
+        if (notif.QueueArn === queue.QueueArn) {
+          notification = notif;
+        }
+      });
+      if (!notification) {
         if (!queue.Policy) {
           let policy = {
             "Version": "2012-10-17",
             "Id": "arn:aws:sqs:" + mainRegion + ":" + account.Id + ":" + this._params.cloudTrailQueue + "/SQSDefaultPolicy",
-            "Statement": [
-              {
-                "Sid": "Ivoryshield",
-                "Effect": "Allow",
-                "Principal": "*",
-                "Action": "SQS:SendMessage",
-                "Resource": "arn:aws:sqs:" + mainRegion + ":" + account.Id + ":" + this._params.cloudTrailQueue,
-                "Condition": {
-                  "ArnLike": {
-                    "aws:SourceArn": "arn:aws:s3:*:*:" + this._params.s3Bucket
-                  }
+            "Statement": [{
+              "Sid": "Ivoryshield",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "SQS:SendMessage",
+              "Resource": "arn:aws:sqs:" + mainRegion + ":" + account.Id + ":" + this._params.cloudTrailQueue,
+              "Condition": {
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:s3:*:*:" + this._params.s3Bucket
                 }
               }
-            ]
+            }]
           };
-          await sqs.setQueueAttributes({
-            QueueUrl: currentQueue,
-            Attributes: {
-              'Policy': JSON.stringify(policy)
-            }
-          }).promise();
+          this.log('ACTION', 'Set Queue Attributes on', currentQueue);
+          if (!this.pretend()) {
+            await sqs.setQueueAttributes({
+              QueueUrl: currentQueue,
+              Attributes: {
+                'Policy': JSON.stringify(policy)
+              }
+            }).promise();
+          }
         }
         notifications.QueueConfigurations.push({
           Events: ['s3:ObjectCreated:*'],
           QueueArn: queue.QueueArn
         });
-        await s3.putBucketNotificationConfiguration({
-          Bucket: this._params.s3Bucket,
-          NotificationConfiguration: notifications
-        }).promise();
+        this.log('ACTION', 'Set bucket notification configuration on S3 Bucket', this._params.s3Bucket);
+        if (!this.pretend()) {
+          await s3.putBucketNotificationConfiguration({
+            Bucket: this._params.s3Bucket,
+            NotificationConfiguration: notifications
+          }).promise();
+        }
       }
       if (this._params.s3BackupBucket) {
         // Setup bucket replication
         let replication;
         try {
-          replication = await s3.getBucketReplication({Bucket: this._params.s3Bucket}).promise();
+          replication = await s3.getBucketReplication({
+            Bucket: this._params.s3Bucket
+          }).promise();
         } catch (err) {
           // Swallow ReplicationConfigurationNotFoundError
           if (err.code !== 'ReplicationConfigurationNotFoundError') {
@@ -230,27 +278,72 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
         }
         this.log('DEBUG', 'Replication is', replication);
         if (!replication) {
-          await s3.putBucketReplication({
-            Bucket: this._params.s3Bucket,
-            ReplicationConfiguration: {
-              Role: '',
-              Rules: [
-                {
-                 Destination: {
-                  Bucket: "arn:aws:s3:::" + this._params.s3BackupBucket, 
-                  StorageClass: "STANDARD"
-                 }, 
-                 Prefix: "",
-                 Status: "Enabled"
-               }
-              ]
-            }
-          });
+          let iam = new aws.IAM();
+          let roles = await iam.listRoles().promise();
+          this.log('ACTION', 'Set replication on S3 Bucket', this._params.s3Bucket);
+          if (!this.pretend()) {
+            await s3.putBucketReplication({
+              Bucket: this._params.s3Bucket,
+              ReplicationConfiguration: {
+                Role: '',
+                Rules: [{
+                  Destination: {
+                    Bucket: "arn:aws:s3:::" + this._params.s3BackupBucket,
+                    StorageClass: "STANDARD"
+                  },
+                  Prefix: "",
+                  Status: "Enabled"
+                }]
+              }
+            });
+          }
         }
       }
     }
     this.log('DEBUG', 'Should CloudTrail setup on', account, this._params.cloudTrailName);
-    process.exit(0);
+    let cloudtrail = new aws.CloudTrail();
+    let trails = (await cloudtrail.describeTrails().promise()).trailList;
+    let currentTrail;
+    for (let i in trails) {
+      if (trails[i].Name === this._params.cloudTrailName) {
+        currentTrail = trails[i];
+      }
+    }
+    let needUpdate = false;
+    let targetConfiguration = {
+      Name: this._params.cloudTrailName,
+      S3BucketName: this._params.s3Bucket,
+      S3KeyPrefix: account.Name,
+      IncludeGlobalServiceEvents: true,
+      KmsKeyId: this._kmsKeyId,
+      EnableLogFileValidation: true,
+      IsMultiRegionTrail: true
+    }
+    if (!currentTrail) {
+      this.log('ACTION', 'Create trail for', account.Name);
+      if (!this.pretend()) {
+        currentTrail = await cloudtrail.createTrail(targetConfiguration).promise();
+        await cloudtrail.startLogging({
+          Name: this._params.cloudTrailName
+        });
+      }
+      return;
+    }
+    for (let i in targetConfiguration) {
+      if (i === 'EnableLogFileValidation') {
+        continue;
+      }
+      if (currentTrail[i] !== targetConfiguration[i]) {
+        this.log('DEBUG', i, 'is not equal', currentTrail[i], targetConfiguration[i]);
+        needUpdate = true;
+      }
+    }
+    if (needUpdate) {
+      this.log('ACTION', 'Update trail for', account.Name);
+      if (!this.pretend()) {
+        await cloudtrail.updateTrail(targetConfiguration).promise();
+      }
+    }
   }
 
   static getModda() {
@@ -272,6 +365,11 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
             "s3BackupBucket": {
               type: "string",
               title: "S3 Bucket for CloudTrail storage backup"
+            },
+            "s3ReplicationRole": {
+              type: "string",
+              title: "IAM Role to use for replication between buckets",
+              default: "ivoryshield-trails-replication-role"
             },
             "cloudTrailName": {
               type: "string",

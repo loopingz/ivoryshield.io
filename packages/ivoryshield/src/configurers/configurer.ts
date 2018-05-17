@@ -1,11 +1,11 @@
 import {
-  Service
+  IvoryShieldService
 } from '../services/service';
 import {
   AccountsService
 } from '../services/accounts';
 
-export class Configurer extends Service {
+export class Configurer extends IvoryShieldService {
 
   _accounts: AccountsService;
 

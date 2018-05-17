@@ -29,7 +29,7 @@ import {
   AWSServiceMixIn
 } from './services/aws-mixin';
 import {
-  Service
+  IvoryShieldService
 } from './services/service';
 
 let Resources = {
@@ -62,5 +62,5 @@ export {
   ValidatorService,
   AWSServiceMixIn,
   Resources,
-  Service
+  IvoryShieldService
 };

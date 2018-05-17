@@ -1,11 +1,11 @@
 import {
-  Service
+  IvoryShieldService
 } from '../services/service';
 import {
   ValidatorService
 } from '../services/validator';
 
-export default class Validator extends Service {
+export default class Validator extends IvoryShieldService {
   constructor(webda, name, params) {
     super(webda, name, params);
     this._params.tagPrefix = this._params.tagPrefix || 'policy:';

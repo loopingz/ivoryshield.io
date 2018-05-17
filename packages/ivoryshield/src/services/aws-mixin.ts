@@ -16,6 +16,7 @@ type Constructor < T extends Service > = new(...args: any[]) => T;
 function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
   return class extends Base {
     _sts: AWS.STS;
+    _regions: Promise < any > ;
     _accounts: any;
     mainAccount: Promise < any > ;
     _aws: any;
@@ -127,7 +128,10 @@ function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
 
     async forEachAccountRegion(callback, label = '') {
       let ec2 = new(this._getAWS()).EC2();
-      let res = await ec2.describeRegions().promise();
+      if (!this._regions) {
+        this._regions = ec2.describeRegions().promise()
+      }
+      let res = await this._regions;
       await this.forEachAccount(async (aws, account) => {
         let promise = Promise.resolve();
         for (let i in res.Regions) {

@@ -1,18 +1,22 @@
 "use strict";
 import {
-  Service,
-  Core as Webda
+  Core as Webda,
+  Service
 } from 'webda';
 import {
-  S3, AWSError, Response
+  IvoryShieldService
+} from './service';
+import {
+  S3,
+  AWSError,
+  Response
 } from 'aws-sdk';
 
-type Constructor < T extends Service > = new(...args: any[]) => T;
 
-function S3MixIn < T extends Constructor < Service >> (Base: T) {
+type Constructor < T extends IvoryShieldService > = new(...args: any[]) => T;
 
+function S3MixIn < T extends Constructor < IvoryShieldService >> (Base: T) {
   return class extends Base {
-
     async bucketExists(s3, bucket) {
       try {
         await s3.headBucket({
@@ -27,26 +31,39 @@ function S3MixIn < T extends Constructor < Service >> (Base: T) {
       }
     }
 
-    async bucketCreate(s3, bucket, region:string = undefined) {
-      let params : any = {
+    async bucketCreate(s3, bucket, region: string = undefined) {
+      let params: any = {
         Bucket: bucket
       };
       if (region) {
         params.CreateBucketConfiguration = {
-         LocationConstraint: region
+          LocationConstraint: region
         }
+      }
+      this.log('ACTION', 'Create S3 Bucket', bucket);
+      if (this.pretend()) {
+        return;
       }
       // Setup www permission on it
       return await s3.createBucket(params).promise();
     }
 
     async bucketHasVersioning(s3, bucket) {
-      let data = await s3.getBucketVersioning({
-        Bucket: bucket
-      }).promise();
-      return data.Status === 'Enabled'
+      try {
+        let data = await s3.getBucketVersioning({
+          Bucket: bucket
+        }).promise();
+        return data.Status === 'Enabled'
+      } catch (err) {
+        return false;
+      }
     }
+
     async bucketSetVersioning(s3, bucket, status = 'Enabled') {
+      this.log('ACTION', 'Set versioning on S3 Bucket', bucket);
+      if (this.pretend()) {
+        return;
+      }
       await s3.putBucketVersioning({
         Bucket: bucket,
         VersioningConfiguration: {
@@ -75,6 +92,10 @@ function S3MixIn < T extends Constructor < Service >> (Base: T) {
           }]
         }
       }
+      this.log('ACTION', 'Set encryption on S3 Bucket', bucket);
+      if (this.pretend()) {
+        return;
+      }
       await s3.putBucketEncryption({
         Bucket: bucket,
         ServerSideEncryptionConfiguration: configuration
@@ -85,8 +106,9 @@ function S3MixIn < T extends Constructor < Service >> (Base: T) {
 
 export {
   S3MixIn,
-  Constructor,
   Service,
+  Constructor,
+  IvoryShieldService,
   Webda,
   AWSError,
   Response
