@@ -14,6 +14,9 @@ import {
 import {
   ValidatorService
 } from './validator';
+import {
+  CloudTrailSetup
+} from '../configurers/cloudtrail';
 const fs = require('fs');
 const moment = require('moment');
 const zlib = require('zlib');
@@ -27,26 +30,22 @@ export default class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
   _counter: number;
   _s3: S3;
   _es: any;
-  _cloudtrailSetup: Service;
+  _cloudtrailSetup: CloudTrailSetup;
   _elkSetup: Service;
   _validatorService: ValidatorService;
 
   init(config) {
     super.init(config);
     this._validatorService = < ValidatorService > this.getService('IvoryShield/ValidatorService');
-    this._cloudtrailSetup = < Service > this.getService('IvoryShield/CloudTrailSetup');
+    this._cloudtrailSetup = < CloudTrailSetup > this.getService('IvoryShield/CloudTrailSetup');
     if (!this._cloudtrailSetup) {
       return;
     }
+    //
+    this._params.queue = this._cloudtrailSetup.getQueueUrl();
     this._elkSetup = < Service > this.getService('IvoryShield/ELKSetup');
     this._aws = this._getAWS();
     this._s3 = new(this._getAWS()).S3();
-    if (this._elkSetup) {
-      this._es = new elasticsearch.Client({
-        host: this._params.elasticsearch
-      });
-      this._params.elasticsearchIndex = this._params.elasticsearchIndex || 'logstash-';
-    }
   }
 
   enable() {
@@ -83,50 +82,41 @@ export default class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
     return this._getAWSForAccount(evt.recipientAccountId, evt.awsRegion);
   }
 
-  processTrailEvent(evt) {
+  async processTrailEvent(evt) {
     // Set a timestamp
     evt.uuid = evt.eventID;
     evt.timestamp = moment(evt.eventTime).unix();
-    let promise = Promise.resolve();
     if (this._es) {
-      promise = this.saveEvent(evt).catch(() => {
+      try {
+        await this.saveEvent(evt);
+      } catch (err) {
         this.log('WARN', 'Could not indexed', evt.eventID, evt.eventName);
-        return Promise.resolve();
-      });
+      }
     }
-    return promise.then(() => {
-      return this._getAWSForEvent(evt);
-    }).then((aws) => {
+    let aws = await this._getAWSForEvent(evt);
+    try {
       return this._validatorService.handleEvent(aws, evt, evt.recipientAccountId);
-    }).catch((err) => {
+    } catch (err) {
       if (err.code && err.code.indexOf('NotFound') >= 0) {
         // The resource does not exist anymore
         this.log('DEBUG', 'Resource vanished', evt.eventID);
-        return Promise.resolve();
+      } else {
+        this.log('ERROR', 'Event error', evt.eventID, err.message);
       }
-      this.log('ERROR', 'Event error', evt.eventID, err.message);
-      // Dont loop over n over
-      return Promise.resolve(err);
-    });
+    }
   }
 
-  processTrailLog(bucket, key) {
-    return this._s3.getObject({
+  async processTrailLog(bucket, key) {
+    let s3obj = await this._s3.getObject({
       Bucket: bucket,
       Key: key
-    }).promise().then((s3obj) => {
-      let promises = [];
-      let cloudEvents = JSON.parse(zlib.gunzipSync(s3obj.Body)).Records;
-      let promise = PromiseUtil.map(cloudEvents, this.processTrailEvent.bind(this), {
-        concurrency: 10
-      });
-      //cloudEvents.forEach( this.processTrailEvent.bind(this) );
-      //return Promise.all(promises);
-      promise.then(() => {
-        this.emit('ProcessedEvents', cloudEvents.length);
-        return Promise.resolve();
-      });
+    }).promise();
+    let promises = [];
+    let cloudEvents = JSON.parse(zlib.gunzipSync(s3obj.Body)).Records;
+    await PromiseUtil.map(cloudEvents, this.processTrailEvent.bind(this), {
+      concurrency: 10
     });
+    this.emit('ProcessedEvents', cloudEvents.length);
   }
 
   run() {
@@ -155,7 +145,19 @@ export default class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
     return Promise.all(promises);
   }
 
-  saveEvent(evt) {
+  private initES() {
+    if (this._elkSetup) {
+      this._es = new elasticsearch.Client({
+        host: this._params.elasticsearch
+      });
+      this._params.elasticsearchIndex = this._params.elasticsearchIndex || 'logstash-';
+    }
+  }
+
+  async saveEvent(evt) {
+    if (!this._es) {
+      await this.initES();
+    }
     let esData: any = {};
     esData.index = this._params.elasticsearchIndex + evt.eventTime.substring(0, 10).replace(new RegExp('-', 'g'), '.');
     esData.id = evt.eventID;

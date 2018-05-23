@@ -116,6 +116,17 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
     this.doCreateKMSKey(kms, keyName, JSON.stringify(this.getKMSKeyPolicy(accountId, principals)));
   }
 
+  init(params) {
+    super.init(params);
+    this._params.mainRegion = this._params.mainRegion || 'us-east-1';
+  }
+
+  getQueueUrl() {
+    // https://sqs.us-east-1.amazonaws.com/820410587685/cloudtrails-queue
+    let mainAccount = this._accounts.getMainAccountId();
+    return `https://sqs.${this._params.mainRegion}.amazonaws.com/${mainAccount}/${this._params.cloudTrailQueue}`;
+  }
+
   async configure(aws, account, region = undefined) {
     let backupRegion = this._params.backupRegion || 'eu-west-1';
     let mainRegion = this._params.mainRegion || 'us-east-1';

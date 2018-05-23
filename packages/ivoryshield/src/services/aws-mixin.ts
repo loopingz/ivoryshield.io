@@ -67,7 +67,7 @@ function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
       });
     }
 
-    _getAWSForAccount(account, region = 'us-east-1') {
+    async _getAWSForAccount(account, region = 'us-east-1') {
       if (this._awsCache[account]) {
         if (this._awsCache[account].expire > new Date().getTime()) {
           let params = JSON.parse(JSON.stringify(this._awsCache[account]));

@@ -105,6 +105,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
       units: []
     };
     for (let id in this._config.credentials) {
+      console.log(id, this._config.credentials[id]);
       webdaConfig.parameters[id] = this._config.credentials[id];
     }
     webdaConfig.parameters['accounts'] = this._config.accounts;
@@ -249,8 +250,8 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
 
   enableOrganization(ctx) {
     delete this._config.accounts;
-    return this.save().then(() => {
-      this.organization = new(this._aws.Organizations)().listAccounts({}).promise();
+    return this.save().then(async () => {
+      await this.reinitOrganization();
       return this.getOrganization(ctx);
     });
   }
@@ -262,46 +263,49 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     });
   }
 
-  reinitClients() {
+  async reinitOrganization() {
+    let aws = this._aws;
+    if (this._config.credentials.organizationAccountId) {
+      this._params.externalId = this._config.credentials.externalId;
+      this._params.role = this._config.credentials.role;
+      aws = await this._getAWSForAccount(this._config.credentials.organizationAccountId);
+    }
+    this.organization = new(aws.Organizations)().listAccounts({}).promise();
+  }
+
+  async reinitClients() {
     this._sts = new this._aws.STS();
     this.mainAccount = this._sts.getCallerIdentity().promise();
     if (!this._config.accounts) {
-      this.organization = new(this._aws.Organizations)().listAccounts({}).promise();
+      await this.reinitOrganization();
     }
   }
 
-  testConnection(ctx) {
+  async testConnection(ctx) {
     this._aws = this._getAWS({
       region: 'us-east-1',
       accessKeyId: ctx.body.accessKeyId,
       secretAccessKey: ctx.body.secretAccessKey
     });
-    this.reinitClients();
-    let promise;
-    if (this._config.accounts) {
-      promise = Promise.resolve({
-        Accounts: this._config.accounts
-      });
-    } else {
-      promise = this.organization;
-    }
+    await this.reinitClients();
     let accounts;
-    return promise.then((res) => {
-      accounts = res.Accounts;
-      let promises = accounts.map((acc) => {
+    if (this._config.accounts) {
+      accounts = this._config.accounts
+    } else {
+      accounts = (await this.organization).Accounts;
+    }
+    let promises = accounts.map((acc) => {
+      acc.AssumeRoleSuccessful = false;
+      acc.AssumeRoleError = null;
+      return this._assumeRole(acc.Id, ctx.body.role, ctx.body.externalId, 'us-east-1', true).then(() => {
+        acc.AssumeRoleSuccessful = true;
+      }).catch((err) => {
+        acc.AssumeRoleError = err;
         acc.AssumeRoleSuccessful = false;
-        acc.AssumeRoleError = null;
-        return this._assumeRole(acc.Id, ctx.body.role, ctx.body.externalId, 'us-east-1', true).then(() => {
-          acc.AssumeRoleSuccessful = true;
-        }).catch((err) => {
-          acc.AssumeRoleError = err;
-          acc.AssumeRoleSuccessful = false;
-        });
       });
-      return Promise.all(promises);
-    }).then(() => {
-      ctx.write(accounts);
     });
+    await Promise.all(promises);
+    ctx.write(accounts);
   }
 
   save() {

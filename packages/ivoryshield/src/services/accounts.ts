@@ -41,8 +41,12 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
   }
 
   async refreshOrganization() {
+    let aws = this._aws;
+    if (this._params.organizationAccountId) {
+      aws = await this._getAWSForAccount(this._params.organizationAccountId);
+    }
     this.expire = new Date().getTime() + this.delay * 1000;
-    return new(this._aws.Organizations)().listAccounts({}).promise().then((res) => {
+    return new(aws.Organizations)().listAccounts({}).promise().then((res) => {
       this.accounts = res.Accounts;
       this.sortAccounts();
     });
@@ -55,6 +59,14 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
 
   isExpired() {
     return this.expire < new Date().getTime() + this.delay * 1000;
+  }
+
+  getMainAccountId() {
+    return this._params.mainAccount;
+  }
+
+  async getMainAccountAWS(region: string = 'us-east-1') {
+    return this._getAWSForAccount(this._params.mainAccount, region);
   }
 
   isMainAccount(account) {
