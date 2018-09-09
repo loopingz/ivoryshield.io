@@ -206,7 +206,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           me: {
             type: Object,
             value: {
-              useOrganization: true
+              useOrganization: true,
+              inOrganization: true
             },
             observer: '_updateMe'
           }
@@ -214,7 +215,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
       static get is() { return 'ivoryshield-accounts'; }
       _updateMe() {
-        if (this.me.useOrganization !== this.useOrganization) {
+        if (this.me.useOrganization !== this.useOrganization || !this.me.inOrganization) {
           this._toggleOrganization(null, null, true, true);
         }
       }
@@ -238,11 +239,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.saveAccounts();
       }
       _toggleOrganization(evt, originEvt, force, noSave) {
-        if (!this.useOrganization && this.accounts.length && !force) {
+        if (!this.me.inOrganization) {
+          this.dispatchEvent(new CustomEvent('CannotUseOrganization', {detail : {}, bubble: true, composed : true}));
+        } else if (!this.useOrganization && this.accounts.length && !force) {
           this.dispatchEvent(new CustomEvent('ConfirmToOrganization', {detail : {}, bubble: true, composed : true}));
           return;
         }
-        this.useOrganization = !this.useOrganization;
+        this.useOrganization = !this.useOrganization & this.me.inOrganization;
         if (this.useOrganization) {
           this.title = 'Organization';
           this.organizationIcon = 'images/aws-organizations.png';
@@ -262,7 +265,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.ajax.body = this.credentials;
         this.$.ajax.method = 'PUT';
         this.$.ajax.generateRequest().completes.then( (res) => {
-          this.accounts = res.response;
+          this.accounts = res.response.accounts;
         }).catch ((err)=> {
 
         });

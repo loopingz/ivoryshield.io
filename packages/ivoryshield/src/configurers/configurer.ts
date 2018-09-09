@@ -9,8 +9,8 @@ export class Configurer extends IvoryShieldService {
 
   _accounts: AccountsService;
 
-  init(params) {
-    super.init(params);
+  async init(params) : Promise<void> {
+    await super.init(params);
     this._accounts = < AccountsService > this.getService('IvoryShield/AccountsService');
   }
 

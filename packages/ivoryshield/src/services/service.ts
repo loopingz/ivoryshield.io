@@ -11,8 +11,8 @@ export default class IvoryShieldService extends Service {
     return this._params.mainAccount;
   }
 
-  init(params) {
-    super.init(params);
+  async init(params) : Promise<void> {
+    await super.init(params);
     if (this.pretend()) {
       // Will replace every method start with do by an empty one
       Object.getOwnPropertyNames(Object.getPrototypeOf(this)).filter((prop) => {

@@ -14,6 +14,24 @@ Both CloudTrail and CronScanner map AWS Resources to an object, and then use def
 
 It will configure your AWS accounts, and launch on Fargate both components
 
+## Quick start
+
+Create your ivoryshield project
+
+```
+# Install webda-shell
+yarn add --global webda-shell
+
+# Create your project
+mkdir ivoryshield-config
+cd ivoryshield-config
+yarn init
+yarn add ivoryshield
+
+# Launch your config
+webda config
+```
+
 ## Software architecture :
 
 ![Software architecture](docs/architecture.png)

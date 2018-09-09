@@ -116,8 +116,8 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
     this.doCreateKMSKey(kms, keyName, JSON.stringify(this.getKMSKeyPolicy(accountId, principals)));
   }
 
-  init(params) {
-    super.init(params);
+  async init(params) : Promise<void> {
+    await super.init(params);
     this._params.mainRegion = this._params.mainRegion || 'us-east-1';
   }
 

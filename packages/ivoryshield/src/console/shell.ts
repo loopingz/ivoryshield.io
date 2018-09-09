@@ -61,10 +61,13 @@ exports.handler = (event, context, callback) => {
 */
 export class ConfigurationService extends AWSServiceMixIn(Executor) {
   _config: any;
-  organization: Promise < any > ;
+  _accounts: any[];
+  _mainAccount: any;
+  _inOrganization: boolean = false;
+
   static CONFIG_FILENAME = './ivoryshield.config.json';
 
-  init(params) {
+  async init(params) : Promise<void> {
     this._awsCache = {};
     this._params = this._params || {};
     this._addRoute('/api/credentials', ["GET", "PUT"], this._restCredentials);
@@ -85,7 +88,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
       accessKeyId: this._config.credentials.accessKeyId,
       secretAccessKey: this._config.credentials.secretAccessKey
     });
-    this.reinitClients();
+    await this.reinitClients();
   }
 
   generateWebdaConfiguration(pretend: boolean) {
@@ -248,37 +251,67 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     }
   }
 
-  enableOrganization(ctx) {
+  async enableOrganization(ctx) {
     delete this._config.accounts;
-    return this.save().then(async () => {
-      await this.reinitOrganization();
-      return this.getOrganization(ctx);
-    });
+    await this.save();
+    await this.loadOrganization();
+    return this.getOrganization(ctx);
   }
 
-  disableOrganization(ctx) {
+  async disableOrganization(ctx) {
     this._config.accounts = [];
-    return this.save().then(() => {
-      ctx.write(this._config.accounts);
-    });
+    await this.save();
+    ctx.write(this._config.accounts);
   }
 
-  async reinitOrganization() {
+  async loadOrganization() {
     let aws = this._aws;
-    if (this._config.credentials.organizationAccountId) {
-      this._params.externalId = this._config.credentials.externalId;
-      this._params.role = this._config.credentials.role;
-      aws = await this._getAWSForAccount(this._config.credentials.organizationAccountId);
+    try {
+      if (this._config.credentials.organizationAccountId) {
+        this._params.externalId = this._config.credentials.externalId;
+        this._params.role = this._config.credentials.role;
+        aws = await this._getAWSForAccount(this._config.credentials.organizationAccountId);
+      }
+      let res = await new (aws.Organizations)().listAccounts({}).promise();
+      if (!this._config.accounts) {
+        this._accounts = res.Accounts;
+      }
+      this._inOrganization = true;
+    } catch (err) {
+      if (err.code === 'AWSOrganizationsNotInUseException') {
+        let name = `AWS Account ID ${this._mainAccount.Account}`;
+        try {
+          let aliases = await new (aws.IAM)().listAccountAliases().promise();
+          if (aliases.AccountAliases.length) {
+            name = aliases.AccountAliases[0];
+          }
+        } catch (err2) {
+          this.log('ERROR', err2);
+        }
+        this._accounts = [{Id: this._mainAccount.Account, Name: name}];
+        this._inOrganization = false;
+      } else if (err.code === 'AccessDeniedException') {
+        console.log('Your account is a sub account of your organization');
+      } else {
+        console.log(err);
+      }
     }
-    this.organization = new(aws.Organizations)().listAccounts({}).promise();
   }
 
   async reinitClients() {
     this._sts = new this._aws.STS();
-    this.mainAccount = this._sts.getCallerIdentity().promise();
-    if (!this._config.accounts) {
-      await this.reinitOrganization();
+    try {
+      await this._sts.getCallerIdentity().promise().then((res) => {
+        this._mainAccount = res;
+      });
+    } catch (err) {
+      if (err.code === 'InvalidClientTokenId') {
+        this.log('ERROR', 'Provided credentials does not work');
+        return;
+      }
+      this.log('ERROR', err);
     }
+    await this.loadOrganization();
   }
 
   async testConnection(ctx) {
@@ -287,25 +320,32 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
       accessKeyId: ctx.body.accessKeyId,
       secretAccessKey: ctx.body.secretAccessKey
     });
-    await this.reinitClients();
-    let accounts;
+
+    this.reinitClients();
     if (this._config.accounts) {
-      accounts = this._config.accounts
+      this._accounts = this._config.accounts;
     } else {
-      accounts = (await this.organization).Accounts;
+      await this.loadOrganization();
     }
-    let promises = accounts.map((acc) => {
+    let promises = this._accounts.map((acc) => {
       acc.AssumeRoleSuccessful = false;
       acc.AssumeRoleError = null;
       return this._assumeRole(acc.Id, ctx.body.role, ctx.body.externalId, 'us-east-1', true).then(() => {
         acc.AssumeRoleSuccessful = true;
+        return acc;
       }).catch((err) => {
         acc.AssumeRoleError = err;
         acc.AssumeRoleSuccessful = false;
+        return acc;
       });
     });
-    await Promise.all(promises);
-    ctx.write(accounts);
+    this._accounts = await Promise.all(promises);
+    ctx.write({
+      accounts: this._accounts,
+      mainAccount: this._mainAccount,
+      useOrganization: this._config.accounts === undefined,
+      inOrganization: this._inOrganization
+    });
   }
 
   save() {
@@ -349,28 +389,15 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
   }
 
   getMe(ctx) {
-    let mainAccount;
-    return this.mainAccount.then((acc) => {
-      mainAccount = acc;
-    }).catch((err) => {
-      this.log('WARN', 'Cannot get the main account');
-    }).then(() => {
-      ctx.write({
-        mainAccount: mainAccount,
-        useOrganization: this._config.accounts === undefined
-      });
+    ctx.write({
+      mainAccount: this._mainAccount,
+      useOrganization: this._config.accounts === undefined,
+      inOrganization: this._inOrganization
     });
   }
 
   getOrganization(ctx) {
-    return this.organization.then((accounts) => {
-      ctx.write(accounts.Accounts);
-    }).catch((err) => {
-      if (err.code === 'AccessDeniedException') {
-        throw 403;
-      }
-      throw 500;
-    });
+    ctx.write(this._accounts);
   }
 }
 
@@ -378,7 +405,7 @@ var ServerConfig = {
   version: 1,
   parameters: {
     website: {
-      url: 'localhost',
+      url: 'localhost:18181',
       path: 'wui/',
       index: 'index.html'
     }
@@ -402,7 +429,7 @@ class IvoryShieldConfigurationServer extends WebdaServer {
     app.get('*', this.handleStaticIndexRequest.bind(this));
   }
 
-  serve(port, openBrowser) {
+  async serve(port, openBrowser) : Promise<Object> {
     this._staticIndex = path.resolve(__dirname + '/../../wui/index.html');
     // This is the configuration server
     super.serve(port);
@@ -410,6 +437,7 @@ class IvoryShieldConfigurationServer extends WebdaServer {
       var open = require('open');
       open("http://localhost:" + port);
     }
+    return new Promise( () => {});
   }
 
   loadConfiguration(config) {
@@ -457,13 +485,13 @@ export default class IvoryShieldConsole extends WebdaConsole {
     console.log('');
   }
 
-  static config(argv) {
+  static async config(argv) : Promise<void> {
     this.generateModule();
     if (argv.deployment) {
       return super.config(argv);
     }
     let webda = new IvoryShieldConfigurationServer();
-    return new Promise(() => {
+    return new Promise<void>(() => {
       webda.serve(18181, argv.open);
     });
   }

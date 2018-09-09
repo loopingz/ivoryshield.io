@@ -16,8 +16,8 @@ export default class ValidatorService extends IvoryShieldService {
     this._validators = [];
   }
 
-  init(config) {
-    super.init(config);
+  async init(config) : Promise<void> {
+    await super.init(config);
     this._config = this.getService('Configuration');
   }
 

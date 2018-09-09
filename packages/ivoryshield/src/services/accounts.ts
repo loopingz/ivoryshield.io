@@ -21,8 +21,8 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
   private unknownAccounts: AccountMap;
   private staticConfiguration: boolean = false;
 
-  init(params) {
-    super.init(params);
+  async init(params) : Promise<void> {
+    await super.init(params);
     this.staticConfiguration = this._params.accounts !== undefined;
     if (this.staticConfiguration) {
       this.accounts = this._params.accounts;
@@ -46,15 +46,13 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
       aws = await this._getAWSForAccount(this._params.organizationAccountId);
     }
     this.expire = new Date().getTime() + this.delay * 1000;
-    return new(aws.Organizations)().listAccounts({}).promise().then((res) => {
+    try {
+      let res = await new(this._aws.Organizations)().listAccounts({}).promise();
       this.accounts = res.Accounts;
-      this.sortAccounts();
-    });
-  }
-
-  async loadOrganization() {
-    let accounts = await this.organization;
-
+    } catch (err) {
+      console.log('Cannot retrieve organization', err);
+    }
+    this.sortAccounts();
   }
 
   isExpired() {

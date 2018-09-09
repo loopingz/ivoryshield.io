@@ -11,7 +11,7 @@ export default class Validator extends IvoryShieldService {
     this._params.tagPrefix = this._params.tagPrefix || 'policy:';
   }
 
-  init(config) {
+  async init(config) : Promise<void> {
     ( < ValidatorService > this.getService('IvoryShield/ValidatorService')).registerValidator(this);
   }
 

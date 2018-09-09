@@ -29,8 +29,8 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   beta: boolean = false;
   _elapsed: number;
 
-  init(config) {
-    super.init(config);
+  async init(config) : Promise<void> {
+    await super.init(config);
     this._validatorService = < ValidatorService > this.getService('IvoryShield/ValidatorService');
     this._metrics = {
       Global: {

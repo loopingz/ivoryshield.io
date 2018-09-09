@@ -22,8 +22,8 @@ function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
     _aws: any;
     _awsCache: any;
 
-    init(config) {
-      super.init(config);
+    async init(config) : Promise<void> {
+      await super.init(config);
       this._sts = new(this._getAWS()).STS();
       this._aws = this._getAWS();
       this.mainAccount = this._sts.getCallerIdentity().promise();
