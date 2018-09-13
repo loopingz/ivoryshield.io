@@ -3,6 +3,9 @@ import {
   WebdaConsole
 } from 'webda-shell';
 import {
+  AccountsService
+} from '../services/accounts'
+import {
   Executor,
   Store
 } from 'webda';
@@ -67,9 +70,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
 
   static CONFIG_FILENAME = './ivoryshield.config.json';
 
-  async init(params) : Promise<void> {
-    this._awsCache = {};
-    this._params = this._params || {};
+  initRoutes() {
     this._addRoute('/api/credentials', ["GET", "PUT"], this._restCredentials);
     this._addRoute('/api/accounts', ["GET", "PUT"], this._restAccounts);
     this._addRoute('/api/organization/enable', ["PUT"], this.enableOrganization);
@@ -79,6 +80,10 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     this._addRoute('/api/configurers', ["GET", "PUT"], this._restConfigurers);
     this._addRoute('/api/validators', ["GET", "PUT"], this._restValidators);
     this._addRoute('/api/deployment', ["GET", "PUT"], this._restDeployment);
+  }
+
+  async init() : Promise<void> {
+    this._awsCache = {};
     this.load();
     this._config.credentials = this._config.credentials || {};
     this._config.configurers = this._config.configurers || {};
@@ -91,7 +96,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     await this.reinitClients();
   }
 
-  generateWebdaConfiguration(pretend: boolean) {
+  generateWebdaConfiguration(pretend: boolean, logLevel: string = 'ACTION', logLevels: string = 'ERROR,VULN,WARN,ACTION,CONSOLE,INFO,DEBUG,TRACE') {
     let webdaConfig = {
       version: 1,
       routes: {},
@@ -108,24 +113,34 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
       units: []
     };
     for (let id in this._config.credentials) {
-      console.log(id, this._config.credentials[id]);
       webdaConfig.parameters[id] = this._config.credentials[id];
     }
     webdaConfig.parameters['accounts'] = this._config.accounts;
     webdaConfig.parameters['pretend'] = pretend;
     webdaConfig.parameters['mainAccount'] = this._config.deployment.mainAccount;
     webdaConfig.parameters['deployment'] = this._config.deployment;
+    webdaConfig.parameters['logLevels'] = logLevels;
+    webdaConfig.parameters['logLevel'] = logLevel;
     for (let id in this._config.configurers) {
       webdaConfig.services[id] = this._config.configurers[id];
     }
     for (let id in this._config.validators) {
       webdaConfig.services[id] = this._config.validators[id];
     }
+    webdaConfig.services['IvoryShield/MetricsStore'] = {
+      type: 'DynamoStore',
+      table: this._config.deployment.metricsTable
+    };
+    if (this._config.deployment.metricsEs) {
+      webdaConfig.services['IvoryShield/MetricsES'] = {
+        type: 'ElasticSearch',
+        es: this._config.deployment.metricsEs
+      };
+    }
     webdaConfig.services['IvoryShield/ValidatorService'] = {};
     webdaConfig.services['IvoryShield/CronCheckerService'] = {};
     webdaConfig.services['IvoryShield/AccountsService'] = {};
     webdaConfig.services['IvoryShield/CloudTrailService'] = {};
-    webdaConfig.services['Webda/ConsoleLogger'] = {};
 
     if (!this._config.deployment.subnets || !this._config.deployment.taskRole || !this._config.deployment.securityGroup) {
       this.log('WARN', 'Missing deployment required configuration');
@@ -243,7 +258,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
       this._config.accounts = ctx.body;
       return this.save();
     } else if (ctx._route._http.method === 'GET') {
-      if (this._config.accounts) {
+      if (this._config.accounts && this._config.accounts.length) {
         ctx.write(this._config.accounts);
       } else {
         return this.getOrganization(ctx);
@@ -266,36 +281,16 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
 
   async loadOrganization() {
     let aws = this._aws;
-    try {
-      if (this._config.credentials.organizationAccountId) {
-        this._params.externalId = this._config.credentials.externalId;
-        this._params.role = this._config.credentials.role;
-        aws = await this._getAWSForAccount(this._config.credentials.organizationAccountId);
-      }
-      let res = await new (aws.Organizations)().listAccounts({}).promise();
-      if (!this._config.accounts) {
-        this._accounts = res.Accounts;
-      }
-      this._inOrganization = true;
-    } catch (err) {
-      if (err.code === 'AWSOrganizationsNotInUseException') {
-        let name = `AWS Account ID ${this._mainAccount.Account}`;
-        try {
-          let aliases = await new (aws.IAM)().listAccountAliases().promise();
-          if (aliases.AccountAliases.length) {
-            name = aliases.AccountAliases[0];
-          }
-        } catch (err2) {
-          this.log('ERROR', err2);
-        }
-        this._accounts = [{Id: this._mainAccount.Account, Name: name}];
-        this._inOrganization = false;
-      } else if (err.code === 'AccessDeniedException') {
-        console.log('Your account is a sub account of your organization');
-      } else {
-        console.log(err);
-      }
+    if (this._config.credentials.organizationAccountId) {
+      this._params.externalId = this._config.credentials.externalId;
+      this._params.role = this._config.credentials.role;
+      aws = await this._getAWSForAccount(this._config.credentials.organizationAccountId);
     }
+    let res = await AccountsService.loadOrganization(aws);
+    if (!this._config.accounts || !this._config.accounts.length) {
+      this._accounts = res.accounts;
+    }
+    this._inOrganization = res.inOrganization;
   }
 
   async reinitClients() {
@@ -451,6 +446,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
     let lines = [];
     lines.push('config'.bold + ' launch web ui configuration');
     lines.push('check'.bold + ' perform a local check of the environment');
+    lines.push('init'.bold + ' init a default module');
     lines.push('install'.bold + ' setup your AWS accounts');
     lines.push('deploy'.bold + ' deploy your new configuration');
     lines.push('test'.bold + ' test a configurer or a validator');
@@ -496,18 +492,19 @@ export default class IvoryShieldConsole extends WebdaConsole {
     });
   }
 
-  static check(argv) {
+  static async check(argv) {
     this.generateModule();
-    this.initWebda(!argv.commit);
+    await this.initWebda(!argv.commit);
+    let args = ['worker', 'IvoryShield/CronCheckerService', 'work'].concat(argv._.splice(1));
     return super.worker({
       deployment: 'ivoryshield',
-      _: ['worker', 'IvoryShield/CronCheckerService']
+      _: args
     });
   }
 
-  static deploy(argv) {
+  static async deploy(argv) {
     this.generateModule();
-    this.initWebda(false);
+    await this.initWebda(false);
     // Deploy on AWS through Webda
     return super.deploy({
       deployment: 'ivoryshield',
@@ -515,16 +512,16 @@ export default class IvoryShieldConsole extends WebdaConsole {
     });
   }
 
-  static initWebda(pretend: boolean = true) {
+  static async initWebda(pretend: boolean = true) {
     let webda = new IvoryShieldConfigurationServer();
-    let configurationService = < ConfigurationService > webda.getService('configuration');
-    //new ConfigurationService(webda, 'ivoryshield', {});
+    await webda.init();
+    let configurationService : any = webda.getService('configuration');
     configurationService.generateWebdaConfiguration(pretend);
   }
 
-  static test(argv) {
+  static async test(argv) {
     this.generateModule();
-    this.initWebda(!argv.commit);
+    await this.initWebda(!argv.commit);
     let args = ['worker', 'IvoryShield/CronCheckerService', 'test'];
     args = args.concat(argv._.slice(1));
     return super.worker({
@@ -533,7 +530,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
     })
   }
 
-  static handleCommand(args) {
+  static async handleCommand(args) {
     let argv = this.parser(args);
     this.initLogger(argv);
     switch (argv._[0]) {
@@ -547,9 +544,15 @@ export default class IvoryShieldConsole extends WebdaConsole {
         return this.test(argv);
       case 'worker':
         return this.worker(argv);
+      case 'init':
+        return this.init(['ivoryshield']);
       case 'help':
       default:
         return this.help();
     }
+  }
+
+  static output(...args) {
+    console.log(...args);
   }
 }

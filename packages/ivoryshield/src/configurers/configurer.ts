@@ -7,13 +7,6 @@ import {
 
 export class Configurer extends IvoryShieldService {
 
-  _accounts: AccountsService;
-
-  async init(params) : Promise<void> {
-    await super.init(params);
-    this._accounts = < AccountsService > this.getService('IvoryShield/AccountsService');
-  }
-
   isEnableOn(account, region = undefined) {
     // Override this method to filter by account or region
     return true;

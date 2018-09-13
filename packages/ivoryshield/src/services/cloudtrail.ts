@@ -34,8 +34,8 @@ export default class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
   _elkSetup: Service;
   _validatorService: ValidatorService;
 
-  async init(config) : Promise<void> {
-    await super.init(config);
+  async init() : Promise<void> {
+    await super.init();
     this._validatorService = < ValidatorService > this.getService('IvoryShield/ValidatorService');
     this._cloudtrailSetup = < CloudTrailSetup > this.getService('IvoryShield/CloudTrailSetup');
     if (!this._cloudtrailSetup) {

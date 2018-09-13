@@ -14,7 +14,7 @@ export default class ElkSetup extends Configurer {
     if (region !== (this._params.mainRegion || 'us-east-1')) {
       return false;
     }
-    return this._accounts.isMainAccount(account.Id);
+    return this.getAccountService().isMainAccount(account.Id);
   }
 
   async doCreateElk() {
@@ -48,7 +48,7 @@ export default class ElkSetup extends Configurer {
   }
 
   async getElasticSearchEndpoint() {
-    let aws: any = await this._accounts.getMainAccountAWS(this._params.mainRegion || 'us-east-1');
+    let aws: any = await this.getAccountService().getMainAccountAWS(this._params.mainRegion || 'us-east-1');
     let es = new(aws.ES)();
     let info = (await es.describeElasticsearchDomain({
       DomainName: this._params.elasticsearchName
@@ -57,8 +57,19 @@ export default class ElkSetup extends Configurer {
   }
 
   async configure(aws, account, region = undefined) {
-    let res = await this.getElasticSearchEndpoint();
-    console.log(res);
+    /*
+    let endpoint;
+    try {
+      endpoint = await this.getElasticSearchEndpoint();
+      await this.checkSize();
+    } catch (err) {
+
+    }
+    if (!endpoint) {
+      this.log('ACTION', 'Create ELK on', account.Name,'with', this._params.elasticsearchName, this._params.storageSpace);
+      await this.doCreateElk();
+    }
+    */
     /*
     this._es = new aws.ES();
     let names = (await this._es.listDomainNames().promise()).DomainNames;
@@ -69,7 +80,6 @@ export default class ElkSetup extends Configurer {
       }
     }
     this.log('ACTION', 'Create ELK on', account.Name,'with', this._params.elasticsearchName, this._params.storageSpace);
-    await this.doCreateElk();
     */
   }
 

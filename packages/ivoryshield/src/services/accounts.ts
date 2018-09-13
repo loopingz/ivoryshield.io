@@ -14,21 +14,16 @@ interface AccountMap {
 
 export default class AccountsService extends AWSServiceMixIn(Service) {
 
-  private organization: Promise < any > ;
-  private accounts: AccountMap;
-  private expire: number;
+  private accounts: AccountMap = [];
+  private expire: number = 0;
   private delay: number = 3600;
-  private unknownAccounts: AccountMap;
   private staticConfiguration: boolean = false;
 
-  async init(params) : Promise<void> {
-    await super.init(params);
+  normalizeParams() {
     this.staticConfiguration = this._params.accounts !== undefined;
     if (this.staticConfiguration) {
       this.accounts = this._params.accounts;
       this.sortAccounts();
-    } else {
-      this.organization = this.refreshOrganization();
     }
   }
 
@@ -40,6 +35,60 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
     });
   }
 
+  static async loadOrganization(aws) : Promise<any> {
+    let whoAmI = await new (aws.STS)().getCallerIdentity().promise();
+    try {
+      let res = await new (aws.Organizations)().listAccounts({}).promise();
+      return {
+        accounts: res.Accounts,
+        inOrganization: true,
+        me: whoAmI
+      };
+    } catch (err) {
+      if (err.code === 'AWSOrganizationsNotInUseException') {
+        let whoAmI = await new (aws.STS)().getCallerIdentity().promise();
+        let name = `AWS Account ID ${whoAmI.Account}`;
+        try {
+          let aliases = await new (aws.IAM)().listAccountAliases().promise();
+          if (aliases.AccountAliases.length) {
+            name = aliases.AccountAliases[0];
+          }
+        } catch (err2) {
+          // Do not fail on aliases research
+          console.log('Error', err2);
+        }
+        return {
+          accounts: [{
+            Id: whoAmI.Account,
+            Name: name
+          }],
+          me: whoAmI,
+          inOrganization: false
+        };
+      } else if (err.code === 'AccessDeniedException') {
+        console.log('Your account is a sub account of your organization');
+        return {
+          accounts: [],
+          me: whoAmI,
+          inOrganization: true
+        }
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  async _getAccountAlias(aws) : Promise<string> {
+    try {
+      let aliasRes = await (new (aws.IAM)().listAccountAliases({}).promise());
+      if (aliasRes.AccountAliases.length) {
+        return aliasRes.AccountAliases[0];
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
   async refreshOrganization() {
     let aws = this._aws;
     if (this._params.organizationAccountId) {
@@ -48,7 +97,21 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
     this.expire = new Date().getTime() + this.delay * 1000;
     try {
       let res = await new(this._aws.Organizations)().listAccounts({}).promise();
-      this.accounts = res.Accounts;
+      this.accounts = res.Accounts.filter(acc => acc.Status === 'ACTIVE');
+      await Promise.all(this.accounts.map( async (act, index) => {
+        let tok = await this._sts.assumeRole({
+          DurationSeconds: 3600,
+          ExternalId: this._params.externalId,
+          RoleArn: 'arn:aws:iam::' + act.Id + ':role/' + this._params["role"],
+          RoleSessionName: 'ivoryshield-session'
+        }).promise();
+        let params = {
+          accessKeyId: tok.Credentials.AccessKeyId,
+          sessionToken: tok.Credentials.SessionToken,
+          secretAccessKey: tok.Credentials.SecretAccessKey
+        };
+        this.accounts[index].Alias = (await this._getAccountAlias(this._getAWS(params))) || act.Id;
+      }));
     } catch (err) {
       console.log('Cannot retrieve organization', err);
     }
@@ -56,7 +119,7 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
   }
 
   isExpired() {
-    return this.expire < new Date().getTime() + this.delay * 1000;
+    return this.expire < new Date().getTime();
   }
 
   getMainAccountId() {
@@ -76,24 +139,6 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
       await this.refreshOrganization();
     }
     return this.accounts;
-  }
-
-  async getAccountName(id: string): Promise < string > {
-    if (this.accounts[id]) {
-      return this.accounts[id];
-    }
-    if (this.staticConfiguration) {
-      return 'Unknown';
-    }
-    if (this.unknownAccounts[id] < new Date().getTime()) {
-      await this.refreshOrganization();
-    }
-    if (this.accounts[id]) {
-      return this.accounts[id];
-    }
-    // Retry loading accounts only every 5min
-    this.unknownAccounts[id] = new Date().getTime() + 5 * 60000;
-    return 'Unknown';
   }
 }
 

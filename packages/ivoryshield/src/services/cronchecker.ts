@@ -23,32 +23,16 @@ const moment = require('moment');
 export default class CronCheckerService extends AWSServiceMixIn(Service) {
   _validatorService: ValidatorService;
   _metrics: any;
-  _configurers: Configurer[];
-  _globalConfigurers: Configurer[];
+  _configurers: Configurer[] = [];
+  _globalConfigurers: Configurer[] = [];
   _es: any;
   beta: boolean = false;
   _elapsed: number;
 
-  async init(config) : Promise<void> {
-    await super.init(config);
+  resolve() {
     this._validatorService = < ValidatorService > this.getService('IvoryShield/ValidatorService');
-    this._metrics = {
-      Global: {
-        Resources: 0
-      }
-    };
-    this._params.configurers = this._params.configurers || [];
-    this._configurers = [];
-    this._globalConfigurers = [];
-    if (this._params.elasticsearch) {
-      this.log('DEBUG', 'Creating ES client to', this._params.elasticsearch);
-      this._es = new elasticsearch.Client({
-        host: this._params.elasticsearch
-      });
-      this._params.elasticsearchIndex = this._params.elasticsearchIndex || 'metrics';
-    }
     let configurers = < Map < string,
-      Configurer > > this._webda.getServicesImplementations(Configurer);
+        Configurer > > this._webda.getServicesImplementations(Configurer);
     for (let i in configurers) {
       let service = < Configurer > configurers[i];
       if (service.isGlobal()) {
@@ -58,6 +42,26 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
         this.log('DEBUG', 'Adding configurer: ', service._name);
         this._configurers.push(service);
       }
+    }
+  }
+
+  normalizeParams() {
+    this._params.configurers = this._params.configurers || [];
+  }
+
+  async init() : Promise<void> {
+    await super.init();
+    this._metrics = {
+      Global: {
+        Resources: 0
+      }
+    };
+    if (this._params.elasticsearch) {
+      this.log('DEBUG', 'Creating ES client to', this._params.elasticsearch);
+      this._es = new elasticsearch.Client({
+        host: this._params.elasticsearch
+      });
+      this._params.elasticsearchIndex = this._params.elasticsearchIndex || 'metrics';
     }
   }
 
@@ -210,7 +214,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
       if (this._webda._services[serviceName]) {
         this.log('WARN', 'Service is not enable, will create a local instance');
         service = new this._webda._services[serviceName](this._webda, 'test', this._webda._config);
-        service.init(this._webda._config);
+        await service.init();
       } else {
         this.log('ERROR', 'The service', serviceName, 'does not exist');
         return;
@@ -250,7 +254,6 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   }
 
   async _handleRegionalServices(aws, account, region) {
-    await this._handleConfigurers(aws, account, region);
     this.log('INFO', 'Check EC2 Instances');
     await this.checkInstances(aws, account, region);
     this.log('INFO', 'Check EBS Volumes');
@@ -300,14 +303,13 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   }
 
   async _handleGlobalServices(aws, account) {
-    await this._handleGlobalConfigurers(aws, account);
     this.log('INFO', 'Check S3 Buckets');
     await this.checkS3(aws, account);
     this.log('INFO', 'Check IAM Users');
     await this.checkIAMUsers(aws, account);
   }
 
-  _handleResults() {
+  async _handleResults() {
     // Should be exported as CronChecker saver ( DynamoDB / File / Console )
     this.log('INFO', '\nMetrics');
     this._metrics.timestamp = (new Date()).getTime();
@@ -357,6 +359,10 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     return Promise.all(promises);
   }
 
+  /**
+   * Call the configurer for global and regions
+   * @returns {Promise<void>}
+   */
   async configure() {
     await this.forEachAccount(this._handleGlobalConfigurers.bind(this), 'Global configurers');
     await this.forEachAccountRegion(this._handleConfigurers.bind(this), 'Regional configurers');
@@ -366,19 +372,27 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
 
   }
 
+  /**
+   * Validate cloud resources one by one
+   * @returns {Promise<void>}
+   */
   async validate() {
-    await this.forEachAccountRegion(this._handleRegionalServices.bind(this), 'Regional objects');
     await this.forEachAccount(this._handleGlobalServices.bind(this));
+    await this.forEachAccountRegion(this._handleRegionalServices.bind(this), 'Regional objects');
   }
 
-  async work() {
+  async work(type) {
     this._elapsed = new Date().getTime();
 
-    await this.configure();
-
-    await this.validate();
-
-    await this._handleResults();
+    if (!type) {
+      await this.configure();
+      await this.validate();
+      await this._handleResults();
+    } else if (type === 'configure') {
+      await this.configure();
+    } else if (type === 'resources') {
+      await this.validate();
+    }
   }
 }
 

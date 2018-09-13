@@ -7,12 +7,9 @@ import {
 
 export default class IvoryShieldService extends Service {
   _params: any;
-  async getMainAccount() {
-    return this._params.mainAccount;
-  }
 
-  async init(params) : Promise<void> {
-    await super.init(params);
+  async init() : Promise<void> {
+    await super.init();
     if (this.pretend()) {
       // Will replace every method start with do by an empty one
       Object.getOwnPropertyNames(Object.getPrototypeOf(this)).filter((prop) => {
@@ -24,12 +21,8 @@ export default class IvoryShieldService extends Service {
     }
   }
 
-  async getAccounts(): Promise < any > {
-    return ( < AccountsService > this.getService('IvoryShield/AccountsService')).getAccounts();
-  }
-
-  async getAccountName(id: string): Promise < string > {
-    return ( < AccountsService > this.getService('IvoryShield/AccountsService')).getAccountName(id);
+  getAccountService() {
+    return ( < AccountsService > this.getService('IvoryShield/AccountsService'));
   }
 
   pretend(): boolean {

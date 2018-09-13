@@ -8,18 +8,13 @@ const Resource = require('../resources/Resource');
 
 export default class ValidatorService extends IvoryShieldService {
 
-  _validators: Validator[];
+  _validators: Validator[] = [];
   _config: any;
 
-  constructor(webda, name, params) {
-    super(webda, name, params);
-    this._validators = [];
-  }
-
-  async init(config) : Promise<void> {
-    await super.init(config);
+  resolve() {
     this._config = this.getService('Configuration');
   }
+
 
   registerValidator(bean) {
     this._validators.push(bean);

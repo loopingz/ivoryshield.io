@@ -59,6 +59,14 @@ function S3MixIn < T extends Constructor < IvoryShieldService >> (Base: T) {
       }
     }
 
+    async doBucketSetPolicy(s3, bucket: string, policy: string) {
+      return s3.putBucketPolicy({Bucket: bucket, Policy: policy}).promise();
+    }
+
+    async bucketGetPolicy(s3, bucket : string) {
+      return s3.getBucketPolicy({Bucket: bucket}).promise();
+    }
+
     async bucketSetVersioning(s3, bucket, status = 'Enabled') {
       this.log('ACTION', 'Set versioning on S3 Bucket', bucket);
       if (this.pretend()) {

@@ -16,28 +16,19 @@ type Constructor < T extends Service > = new(...args: any[]) => T;
 function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
   return class extends Base {
     _sts: AWS.STS;
-    _regions: Promise < any > ;
+    _regions: any[] ;
     _accounts: any;
     mainAccount: Promise < any > ;
     _aws: any;
     _awsCache: any;
 
-    async init(config) : Promise<void> {
-      await super.init(config);
-      this._sts = new(this._getAWS()).STS();
+    async init() : Promise<void> {
+      await super.init();
       this._aws = this._getAWS();
+      this._sts = new(this._aws).STS();
       this.mainAccount = this._sts.getCallerIdentity().promise();
       this._awsCache = {};
-      this._accounts = {};
-      for (let i in this._params.accounts) {
-        this._accounts[this._params.accounts[i].Name] = this._params.accounts[i].Id;
-      }
     }
-
-    _getMainAccount() {
-      return Promise.resolve(this.mainAccount);
-    }
-
 
     _assumeRole(account, role, externalId, region = 'us-east-1', noCache = false) {
       if (this._awsCache[account] && !noCache) {
@@ -94,20 +85,11 @@ function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
       return AWS;
     }
 
-    async forTestAccount(callback, label = '') {
-      this.log('INFO', label, 'on test account');
-      let account = '254525589362';
-      let region = 'us-east-1';
-      let aws = await this._getAWSForAccount(account, region);
-      return callback(aws, account, region);
-    }
-
-    async forEachAccount(callback, label = '') {
-      let accounts = await this.getAccounts();
+    async forEachAccount(callback, label = '', accounts = undefined) {
+      accounts = accounts || await this.getAccounts();
       // Get credential
       for (let i in accounts) {
         let act = accounts[i];
-        let actNum = this._params.accounts[act];
         this.log('INFO', label, 'on account', act.Name, '(' + act.Id + ')');
         let params;
         let tok = await this._sts.assumeRole({
@@ -129,13 +111,11 @@ function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
     async forEachAccountRegion(callback, label = '') {
       let ec2 = new(this._getAWS()).EC2();
       if (!this._regions) {
-        this._regions = ec2.describeRegions().promise()
+        this._regions = (await ec2.describeRegions().promise()).Regions;
       }
-      let res = await this._regions;
       await this.forEachAccount(async (aws, account) => {
-        let promise = Promise.resolve();
-        for (let i in res.Regions) {
-          let region = res.Regions[i];
+        for (let i in this._regions) {
+          let region = this._regions[i];
           aws.config.update({
             region: region.RegionName
           });

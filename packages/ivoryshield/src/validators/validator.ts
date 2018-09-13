@@ -6,13 +6,18 @@ import {
 } from '../services/validator';
 
 export default class Validator extends IvoryShieldService {
-  constructor(webda, name, params) {
-    super(webda, name, params);
-    this._params.tagPrefix = this._params.tagPrefix || 'policy:';
+
+  resolve() {
+    super.resolve();
+    ( < ValidatorService > this.getService('IvoryShield/ValidatorService')).registerValidator(this);
   }
 
-  async init(config) : Promise<void> {
-    ( < ValidatorService > this.getService('IvoryShield/ValidatorService')).registerValidator(this);
+  async init() : Promise<void> {
+    await super.init();
+  }
+
+  normalizeParams() {
+    this._params.tagPrefix = this._params.tagPrefix || 'policy:';
   }
 
   isEnableOn(account, region) {

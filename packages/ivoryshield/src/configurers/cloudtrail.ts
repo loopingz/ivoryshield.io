@@ -49,13 +49,13 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
           "Sid": "Enable IAM User Permissions",
           "Effect": "Allow",
           "Principal": {
-            "AWS": "arn:aws:iam::" + mainAccount + ":root"
+            "AWS": `arn:aws:iam::${mainAccount}:root`
           },
           "Action": "kms:*",
           "Resource": "*"
         },
         {
-          "Sid": "Allow use of the key",
+          "Sid": "IvoryShield-Accounts",
           "Effect": "Allow",
           "Principal": {
             "AWS": principals
@@ -116,21 +116,62 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
     this.doCreateKMSKey(kms, keyName, JSON.stringify(this.getKMSKeyPolicy(accountId, principals)));
   }
 
-  async init(params) : Promise<void> {
-    await super.init(params);
+  normalizeParams() {
     this._params.mainRegion = this._params.mainRegion || 'us-east-1';
+  }
+
+  async init() : Promise<void> {
+    await super.init();
   }
 
   getQueueUrl() {
     // https://sqs.us-east-1.amazonaws.com/820410587685/cloudtrails-queue
-    let mainAccount = this._accounts.getMainAccountId();
+    let mainAccount = this.getAccountService().getMainAccountId();
     return `https://sqs.${this._params.mainRegion}.amazonaws.com/${mainAccount}/${this._params.cloudTrailQueue}`;
+  }
+
+  async checkBucketPolicy(s3) {
+    let policy = JSON.parse((await this.bucketGetPolicy(s3, this._params.s3Bucket)).Policy);
+    let accounts = await this.getAccountService().getAccounts();
+    let current = policy.Statement.filter((stat) => stat.Sid.startsWith('IvoryShield-CloudTrail'));
+    let custom = policy.Statement.filter((stat) => !stat.Sid.startsWith('IvoryShield-CloudTrail'));
+    let needed = accounts.map( acc => ({
+      'Sid': `IvoryShield-CloudTrail-${acc.Alias}`,
+      'Effect': 'Allow',
+      "Principal": {
+        "Service": "cloudtrail.amazonaws.com"
+      },
+      "Action": "s3:PutObject",
+      "Resource": `arn:aws:s3:::${this._params.s3Bucket}/${acc.Alias}/AWSLogs/${acc.Id}/*`,
+      "Condition": {
+        "StringEquals": {
+          "s3:x-amz-acl": "bucket-owner-full-control"
+        }
+      }
+    }));
+    needed.push({
+      "Sid": "IvoryShield-CloudTrail",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudtrail.amazonaws.com"
+      },
+      "Action": [
+        "s3:GetBucketAcl",
+        "s3:ListBucket"
+      ],
+      "Resource": `arn:aws:s3:::${this._params.s3Bucket}`
+    });
+    if (JSON.stringify(current) !== JSON.stringify(needed)) {
+      policy.Statement = needed.concat(custom);
+      this.log('ACTION', 'Update S3 Trails bucket policy');
+      await this.doBucketSetPolicy(s3, this._params.s3Bucket, JSON.stringify(policy));
+    }
   }
 
   async configure(aws, account, region = undefined) {
     let backupRegion = this._params.backupRegion || 'eu-west-1';
     let mainRegion = this._params.mainRegion || 'us-east-1';
-    if (this._accounts.isMainAccount(account.Id)) {
+    if (this.getAccountService().isMainAccount(account.Id)) {
       let principals: string[] = [];
       if (this._params.deployment.taskRole) {
         principals.push(this._params.deployment.taskRole);
@@ -196,6 +237,7 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
       if (!(await this.bucketHasVersioning(s3, this._params.s3Bucket))) {
         await this.bucketSetVersioning(s3, this._params.s3Bucket);
       }
+      await this.checkBucketPolicy(s3);
       let sqs = new aws.SQS();
       let queues = (await sqs.listQueues().promise()).QueueUrls;
       let currentQueue;
@@ -207,7 +249,7 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
       if (!currentQueue) {
         this.log('DEBUG', 'Create the queue', this._params.cloudTrailQueue);
         if (this.pretend()) {
-          currentQueue = `https://sqs.${region}.amazonaws.com/${account.Id}/${this._params.cloudTrailQueue}`;
+          currentQueue = `https://sqs.${mainRegion}.amazonaws.com/${account.Id}/${this._params.cloudTrailQueue}`;
           this.log('DEBUG', 'Fake queue is', currentQueue);
         } else {
           currentQueue = (await sqs.createQueue({
@@ -222,7 +264,9 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
           AttributeNames: ['QueueArn', 'Policy']
         }).promise()).Attributes;
       } else {
-        queue = {};
+        queue = {
+          QueueArn: `arn:aws:sqs:${mainRegion}:${account.Id}:${this._params.cloudTrailQueue}`
+        };
       }
       this.log('DEBUG', 'Checking S3 Events are configured correctly', currentQueue);
       let notifications = (await s3.getBucketNotificationConfiguration({
@@ -312,7 +356,9 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
       }
     }
     this.log('DEBUG', 'Should CloudTrail setup on', account, this._params.cloudTrailName);
-    let cloudtrail = new aws.CloudTrail();
+    let cloudtrail = new aws.CloudTrail({
+      region: mainRegion
+    });
     let trails = (await cloudtrail.describeTrails().promise()).trailList;
     let currentTrail;
     for (let i in trails) {
@@ -321,10 +367,11 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
       }
     }
     let needUpdate = false;
+    //console.log(account);
     let targetConfiguration = {
       Name: this._params.cloudTrailName,
       S3BucketName: this._params.s3Bucket,
-      S3KeyPrefix: account.Name,
+      S3KeyPrefix: account.Alias,
       IncludeGlobalServiceEvents: true,
       KmsKeyId: this._kmsKeyId,
       EnableLogFileValidation: true,
@@ -332,12 +379,7 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
     }
     if (!currentTrail) {
       this.log('ACTION', 'Create trail for', account.Name);
-      if (!this.pretend()) {
-        currentTrail = await cloudtrail.createTrail(targetConfiguration).promise();
-        await cloudtrail.startLogging({
-          Name: this._params.cloudTrailName
-        });
-      }
+      await this.doCreateTrail(cloudtrail, targetConfiguration);
       return;
     }
     for (let i in targetConfiguration) {
@@ -351,10 +393,31 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
     }
     if (needUpdate) {
       this.log('ACTION', 'Update trail for', account.Name);
-      if (!this.pretend()) {
-        await cloudtrail.updateTrail(targetConfiguration).promise();
-      }
+      await this.doUpdateTrail(cloudtrail, targetConfiguration);
     }
+    let status = await cloudtrail.getTrailStatus({
+      Name: currentTrail.TrailARN
+    }).promise();
+    if (!status.IsLogging) {
+      this.log('VULN', 'Restart trail for', account.Name);
+      await this.doStartTrail(cloudtrail, currentTrail.TrailARN);
+    }
+
+  }
+
+  async doStartTrail(cloudtrail, trailArn) {
+    await cloudtrail.startLogging({
+      Name: trailArn
+    }).promise();
+  }
+
+  async doCreateTrail(cloudtrail, configuration) {
+    let trail = await cloudtrail.createTrail(configuration).promise();
+    await this.doStartTrail(cloudtrail, trail.TrailARN);
+  }
+
+  async doUpdateTrail(cloudtrail, configuration) {
+    return cloudtrail.updateTrail(configuration);
   }
 
   static getModda() {
