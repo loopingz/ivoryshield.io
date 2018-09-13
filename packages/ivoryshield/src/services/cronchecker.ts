@@ -105,7 +105,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
 
   async checkInstances(aws, account, region) {
     let ec2 = new aws.EC2();
-    let res = ec2.describeInstances().promise();
+    let res = await ec2.describeInstances().promise();
     for (let i in res.Reservations) {
       await this._handleResources(aws, res.Reservations[i].Instances, 'EC2Instance', account);
     }
