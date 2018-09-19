@@ -545,7 +545,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
       case 'worker':
         return this.worker(argv);
       case 'init':
-        return this.init(['ivoryshield']);
+        return this.init(argv, 'ivoryshield');
       case 'help':
       default:
         return this.help();
