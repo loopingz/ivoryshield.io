@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import {
   WebdaServer,
   WebdaConsole
@@ -82,7 +84,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     this._addRoute('/api/deployment', ["GET", "PUT"], this._restDeployment);
   }
 
-  async init() : Promise<void> {
+  async init(): Promise < void > {
     this._awsCache = {};
     this.load();
     this._config.credentials = this._config.credentials || {};
@@ -424,7 +426,7 @@ class IvoryShieldConfigurationServer extends WebdaServer {
     app.get('*', this.handleStaticIndexRequest.bind(this));
   }
 
-  async serve(port, openBrowser) : Promise<Object> {
+  async serve(port, openBrowser): Promise < Object > {
     this._staticIndex = path.resolve(__dirname + '/../../wui/index.html');
     // This is the configuration server
     super.serve(port);
@@ -432,7 +434,7 @@ class IvoryShieldConfigurationServer extends WebdaServer {
       var open = require('open');
       open("http://localhost:" + port);
     }
-    return new Promise( () => {});
+    return new Promise(() => {});
   }
 
   loadConfiguration(config) {
@@ -481,13 +483,13 @@ export default class IvoryShieldConsole extends WebdaConsole {
     console.log('');
   }
 
-  static async config(argv) : Promise<void> {
+  static async config(argv): Promise < void > {
     this.generateModule();
     if (argv.deployment) {
       return super.config(argv);
     }
     let webda = new IvoryShieldConfigurationServer();
-    return new Promise<void>(() => {
+    return new Promise < void > (() => {
       webda.serve(18181, argv.open);
     });
   }
@@ -515,7 +517,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
   static async initWebda(pretend: boolean = true) {
     let webda = new IvoryShieldConfigurationServer();
     await webda.init();
-    let configurationService : any = webda.getService('configuration');
+    let configurationService: any = webda.getService('configuration');
     configurationService.generateWebdaConfiguration(pretend);
   }
 
@@ -555,4 +557,8 @@ export default class IvoryShieldConsole extends WebdaConsole {
   static output(...args) {
     console.log(...args);
   }
+}
+
+if (!module.parent) {
+  IvoryShieldConsole.handleCommand(process.argv.slice(2));
 }
