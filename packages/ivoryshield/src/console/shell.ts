@@ -534,6 +534,7 @@ export default class IvoryShieldConsole extends WebdaConsole {
 
   static async handleCommand(args) {
     let argv = this.parser(args);
+    this.typescriptCompile();
     this.initLogger(argv);
     switch (argv._[0]) {
       case 'config':
