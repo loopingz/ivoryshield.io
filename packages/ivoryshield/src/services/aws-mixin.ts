@@ -16,13 +16,13 @@ type Constructor < T extends Service > = new(...args: any[]) => T;
 function AWSServiceMixIn < T extends Constructor < Service >> (Base: T) {
   return class extends Base {
     _sts: AWS.STS;
-    _regions: any[] ;
+    _regions: any[];
     _accounts: any;
     mainAccount: Promise < any > ;
     _aws: any;
     _awsCache: any;
 
-    async init() : Promise<void> {
+    async init(): Promise < void > {
       await super.init();
       this._aws = this._getAWS();
       this._sts = new(this._aws).STS();

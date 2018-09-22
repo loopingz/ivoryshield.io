@@ -120,7 +120,7 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
     this._params.mainRegion = this._params.mainRegion || 'us-east-1';
   }
 
-  async init() : Promise<void> {
+  async init(): Promise < void > {
     await super.init();
   }
 
@@ -135,7 +135,7 @@ export default class CloudTrailSetup extends S3MixIn(Configurer) {
     let accounts = await this.getAccountService().getAccounts();
     let current = policy.Statement.filter((stat) => stat.Sid.startsWith('IvoryShield-CloudTrail'));
     let custom = policy.Statement.filter((stat) => !stat.Sid.startsWith('IvoryShield-CloudTrail'));
-    let needed = accounts.map( acc => ({
+    let needed = accounts.map(acc => ({
       'Sid': `IvoryShield-CloudTrail-${acc.Alias}`,
       'Effect': 'Allow',
       "Principal": {

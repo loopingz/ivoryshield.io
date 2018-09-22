@@ -32,7 +32,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   resolve() {
     this._validatorService = < ValidatorService > this.getService('IvoryShield/ValidatorService');
     let configurers = < Map < string,
-        Configurer > > this._webda.getServicesImplementations(Configurer);
+      Configurer > > this._webda.getServicesImplementations(Configurer);
     for (let i in configurers) {
       let service = < Configurer > configurers[i];
       if (service.isGlobal()) {
@@ -49,7 +49,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     this._params.configurers = this._params.configurers || [];
   }
 
-  async init() : Promise<void> {
+  async init(): Promise < void > {
     await super.init();
     this._metrics = {
       Global: {

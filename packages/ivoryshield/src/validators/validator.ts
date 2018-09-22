@@ -12,7 +12,7 @@ export default class Validator extends IvoryShieldService {
     ( < ValidatorService > this.getService('IvoryShield/ValidatorService')).registerValidator(this);
   }
 
-  async init() : Promise<void> {
+  async init(): Promise < void > {
     await super.init();
   }
 

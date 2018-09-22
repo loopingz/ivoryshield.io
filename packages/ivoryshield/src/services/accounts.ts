@@ -35,10 +35,10 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
     });
   }
 
-  static async loadOrganization(aws) : Promise<any> {
-    let whoAmI = await new (aws.STS)().getCallerIdentity().promise();
+  static async loadOrganization(aws): Promise < any > {
+    let whoAmI = await new(aws.STS)().getCallerIdentity().promise();
     try {
-      let res = await new (aws.Organizations)().listAccounts({}).promise();
+      let res = await new(aws.Organizations)().listAccounts({}).promise();
       return {
         accounts: res.Accounts,
         inOrganization: true,
@@ -46,10 +46,10 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
       };
     } catch (err) {
       if (err.code === 'AWSOrganizationsNotInUseException') {
-        let whoAmI = await new (aws.STS)().getCallerIdentity().promise();
+        let whoAmI = await new(aws.STS)().getCallerIdentity().promise();
         let name = `AWS Account ID ${whoAmI.Account}`;
         try {
-          let aliases = await new (aws.IAM)().listAccountAliases().promise();
+          let aliases = await new(aws.IAM)().listAccountAliases().promise();
           if (aliases.AccountAliases.length) {
             name = aliases.AccountAliases[0];
           }
@@ -78,9 +78,9 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
     }
   }
 
-  async _getAccountAlias(aws) : Promise<string> {
+  async _getAccountAlias(aws): Promise < string > {
     try {
-      let aliasRes = await (new (aws.IAM)().listAccountAliases({}).promise());
+      let aliasRes = await (new(aws.IAM)().listAccountAliases({}).promise());
       if (aliasRes.AccountAliases.length) {
         return aliasRes.AccountAliases[0];
       }
@@ -98,7 +98,7 @@ export default class AccountsService extends AWSServiceMixIn(Service) {
     try {
       let res = await new(this._aws.Organizations)().listAccounts({}).promise();
       this.accounts = res.Accounts.filter(acc => acc.Status === 'ACTIVE');
-      await Promise.all(this.accounts.map( async (act, index) => {
+      await Promise.all(this.accounts.map(async (act, index) => {
         let tok = await this._sts.assumeRole({
           DurationSeconds: 3600,
           ExternalId: this._params.externalId,
