@@ -38,7 +38,7 @@
     "jsonpath": "^1.0.0",
     "open": "0.0.5",
     "webda": "^0.10.0",
-    "webda-shell": "~0.9.12",
+    "webda-shell": "^0.10.1",
     "webda-elasticsearch": "~1.0.0",
     "yargs": "^11.0.0"
   },
