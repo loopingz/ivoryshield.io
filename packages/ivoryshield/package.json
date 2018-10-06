@@ -1,6 +1,6 @@
 {
   "name": "ivoryshield",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Protect your cloud and automate it",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -25,10 +25,8 @@
   },
   "files": [
     "lib",
-    "wui",
     "webda.module.json",
     "webda.shell.json",
-    "wui",
     "logo.json"
   ],
   "homepage": "https://github.com/loopingz/ivoryshield#readme",
@@ -38,7 +36,7 @@
     "jsonpath": "^1.0.0",
     "open": "0.0.5",
     "webda": "^0.10.0",
-    "webda-shell": "^0.10.1",
+    "webda-shell": "^0.10.3",
     "webda-elasticsearch": "~1.0.0",
     "yargs": "^11.0.0"
   },

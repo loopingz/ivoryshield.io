@@ -24,14 +24,13 @@ import {
 import {
   Configurer
 } from '../configurers/configurer';
-
-const path = require('path');
-const fs = require('fs');
-const glob = require('glob');
+import * as path from 'path';
+import * as fs from 'fs';
+import * as glob from 'glob';
 
 /*
 const AWS = require('aws-sdk');
-exports.handler = (event, context, callback) => {
+exports.handler = async (event, context) => {
   // TODO implement
   var result = 'Run task at ' + new Date();
   var ecs = new AWS.ECS();
@@ -55,13 +54,7 @@ exports.handler = (event, context, callback) => {
     },
     startedBy: 'nuxeo-cronchecker-scheduler'
   };
-  ecs.runTask(params, function(err, data) {
-    if (err) {
-      callback(err, err.stack); // an error occurred
-    } else {
-      callback(null, result + ' ' + JSON.stringify(data));
-    }
-  });
+  await ecs.runTask(params).promise();
 };
 */
 export class ConfigurationService extends AWSServiceMixIn(Executor) {
@@ -163,6 +156,7 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     }
     // Set the CronChecker
     unit.serviceName = this._config.deployment.croncheckServiceName || 'ivoryshield/cron';
+    unit.noService = true;
     unit.workers = ['IvoryShield/CronCheckerService'];
     webdaDeployment.units.push(unit);
     // Duplicate the unit
@@ -345,27 +339,20 @@ export class ConfigurationService extends AWSServiceMixIn(Executor) {
     });
   }
 
-  save() {
-    return new Promise((resolve, reject) => {
-      this._config.lastUpdate = new Date();
-      if (this._config.accounts) {
-        this._config.accounts.map((acc) => {
-          delete acc.AssumeRoleSuccessful;
-          delete acc.AssumeRoleError;
-        });
-      }
-      fs.writeFile('./ivoryshield.config.json', JSON.stringify(this._config, null, ' '), (err, res) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(res);
+  async save() {
+    this._config.lastUpdate = new Date();
+    if (this._config.accounts) {
+      this._config.accounts.map((acc) => {
+        delete acc.AssumeRoleSuccessful;
+        delete acc.AssumeRoleError;
       });
-    });
+    }
+    fs.writeFileSync('./ivoryshield.config.json', JSON.stringify(this._config, null, ' '));
   }
 
   load() {
     if (fs.existsSync(ConfigurationService.CONFIG_FILENAME)) {
-      this._config = JSON.parse(fs.readFileSync(ConfigurationService.CONFIG_FILENAME));
+      this._config = JSON.parse(fs.readFileSync(ConfigurationService.CONFIG_FILENAME).toString());
     } else {
       this._config = {
         credentials: {
@@ -418,16 +405,16 @@ class IvoryShieldConfigurationServer extends WebdaServer {
   _webdaModule: any = {};
 
   serveStaticWebsite(express, app) {
-    app.use(express.static(__dirname + '/../../wui/'));
+    app.use(express.static(process.env.HOME + '/.webda-wui/ivoryshield/'));
   }
 
   serveIndex(express, app) {
-    app.use(express.static(__dirname + '/../../wui/index.html'));
+    app.use(express.static(process.env.HOME + '/.webda-wui/ivoryshield/index.html'));
     app.get('*', this.handleStaticIndexRequest.bind(this));
   }
 
   async serve(port, openBrowser): Promise < Object > {
-    this._staticIndex = path.resolve(__dirname + '/../../wui/index.html');
+    this._staticIndex = process.env.HOME + '/.webda-wui/ivoryshield/index.html';
     // This is the configuration server
     super.serve(port);
     if (openBrowser || openBrowser === undefined) {
@@ -483,10 +470,23 @@ export default class IvoryShieldConsole extends WebdaConsole {
     console.log('');
   }
 
+  static getWUIName() : string {
+    return 'ivoryshield';
+  }
+
+  static getLastWUIVersionURL() {
+    return 'https://ivoryshield.io/wuis/wuis.json';
+  }
+
   static async config(argv): Promise < void > {
     this.generateModule();
     if (argv.deployment) {
       return super.config(argv);
+    }
+    try {
+      await this.getLastWUIVersion();
+    } catch (err) {
+      this.log('ERROR', 'Cannot get latest version of Web UI', err);
     }
     let webda = new IvoryShieldConfigurationServer();
     return new Promise < void > (() => {

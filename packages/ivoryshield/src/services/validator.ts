@@ -4,7 +4,9 @@ import {
 import {
   Validator
 } from '../validators/validator';
-const Resource = require('../resources/Resource');
+import {
+  Resource
+} from '../resources/Resource';
 
 export default class ValidatorService extends IvoryShieldService {
 

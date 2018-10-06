@@ -17,11 +17,11 @@ import {
 import {
   CloudTrailSetup
 } from '../configurers/cloudtrail';
-const fs = require('fs');
-const moment = require('moment');
-const zlib = require('zlib');
-const elasticsearch = require('elasticsearch');
-const PromiseUtil = require("bluebird");
+import * as fs from 'fs';
+import * as moment from 'moment';
+import * as zlib from 'zlib';
+import * as elasticsearch from 'elasticsearch';
+import * as PromiseUtil from 'bluebird';
 
 
 export default class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
@@ -75,7 +75,7 @@ export default class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
 
   test(evtFile) {
     this.log('INFO', 'Testing event from', evtFile);
-    return this.processTrailEvent(JSON.parse(fs.readFileSync(evtFile)));
+    return this.processTrailEvent(JSON.parse(fs.readFileSync(evtFile).toString()));
   }
 
   _getAWSForEvent(evt) {
@@ -107,11 +107,13 @@ export default class CloudTrailService extends AWSServiceMixIn(SQSQueue) {
   }
 
   async processTrailLog(bucket, key) {
+    this.log('DEBUG', 'Processing log', bucket, key);
     let s3obj = await this._s3.getObject({
       Bucket: bucket,
       Key: key
     }).promise();
     let promises = [];
+    // @ts-ignore
     let cloudEvents = JSON.parse(zlib.gunzipSync(s3obj.Body)).Records;
     await PromiseUtil.map(cloudEvents, this.processTrailEvent.bind(this), {
       concurrency: 10

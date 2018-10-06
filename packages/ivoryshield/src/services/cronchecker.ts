@@ -1,8 +1,5 @@
 import {
   AWSServiceMixIn,
-  STS,
-  Webda,
-  AWS
 } from '../services/aws-mixin';
 import {
   Service
@@ -16,9 +13,9 @@ import {
 import {
   Resource
 } from '../resources/Resource';
-const fs = require('fs');
-const elasticsearch = require('elasticsearch');
-const moment = require('moment');
+import * as fs from 'fs';
+import * as elasticsearch from 'elasticsearch';
+import * as moment from 'moment';
 
 export default class CronCheckerService extends AWSServiceMixIn(Service) {
   _validatorService: ValidatorService;
@@ -353,7 +350,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     let files = fs.readdirSync('./logs');
     let promises = [];
     files.forEach((file) => {
-      let obj = JSON.parse(fs.readFileSync('./logs/' + file));
+      let obj = JSON.parse(fs.readFileSync('./logs/' + file).toString());
       promises.push(this.saveMetrics(obj));
     });
     return Promise.all(promises);
