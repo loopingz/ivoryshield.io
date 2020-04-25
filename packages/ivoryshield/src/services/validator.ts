@@ -1,30 +1,20 @@
-import {
-  IvoryShieldService
-} from './service';
-import {
-  Validator
-} from '../validators/validator';
-import {
-  Resource
-} from '../resources/Resource';
+import { IvoryShieldService } from "./service";
+import { Validator } from "../validators/validator";
+import { Resource } from "../resources/Resource";
 
 export default class ValidatorService extends IvoryShieldService {
-
   _validators: Validator[] = [];
   _config: any;
 
   resolve() {
-    this._config = this.getService('Configuration');
+    this._config = this.getService("Configuration");
   }
-
 
   registerValidator(bean) {
     this._validators.push(bean);
   }
 
-  loadResource() {
-
-  }
+  loadResource() {}
 
   handleEvent(aws, evt, account) {
     let resources = Resource.fromEvent(aws, evt);
@@ -50,7 +40,7 @@ export default class ValidatorService extends IvoryShieldService {
         }
       } catch (err) {
         // Dont fail if one validator fail
-        this.log('WARN', 'Validator', validator._name, 'had an issue', err.message);
+        this.log("WARN", "Validator", validator._name, "had an issue", err.message);
       }
       if (!this.pretend()) {
         // Resource commit)
@@ -61,6 +51,4 @@ export default class ValidatorService extends IvoryShieldService {
   }
 }
 
-export {
-  ValidatorService
-};
+export { ValidatorService };

@@ -1,9 +1,6 @@
-import {
-  Configurer
-} from './configurer';
+import { Configurer } from "./configurer";
 
 export default class ElkSetup extends Configurer {
-
   _es: AWS.ES;
 
   isGlobal() {
@@ -11,7 +8,7 @@ export default class ElkSetup extends Configurer {
   }
 
   isEnableOn(account, region) {
-    if (region !== (this._params.mainRegion || 'us-east-1')) {
+    if (region !== (this._params.mainRegion || "us-east-1")) {
       return false;
     }
     return this.getAccountService().isMainAccount(account.Id);
@@ -23,36 +20,46 @@ export default class ElkSetup extends Configurer {
       EBSOptions: {
         EBSEnabled: true,
         VolumeSize: this._params.storageSpace,
-        VolumeType: 'standard'
-      }
+        VolumeType: "standard",
+      },
     };
     await this._es.createElasticsearchDomain(params).promise();
   }
 
   async doResize(options) {
     options.VolumeSize = this._params.storageSpace;
-    await this._es.updateElasticsearchDomainConfig({
-      DomainName: this._params.elasticsearchName,
-      EBSOptions: options
-    }).promise();
+    await this._es
+      .updateElasticsearchDomainConfig({
+        DomainName: this._params.elasticsearchName,
+        EBSOptions: options,
+      })
+      .promise();
   }
 
   async checkSize() {
-    let config = (await this._es.describeElasticsearchDomainConfig({
-      DomainName: this._params.elasticsearchName
-    }).promise()).DomainConfig;
+    let config = (
+      await this._es
+        .describeElasticsearchDomainConfig({
+          DomainName: this._params.elasticsearchName,
+        })
+        .promise()
+    ).DomainConfig;
     if (config.EBSOptions.Options.VolumeSize !== this._params.storageSpace) {
-      this.log('ACTION', 'Resize the ES cluster', config);
+      this.log("ACTION", "Resize the ES cluster", config);
       await this.doResize(config.EBSOptions.Options);
     }
   }
 
   async getElasticSearchEndpoint() {
-    let aws: any = await this.getAccountService().getMainAccountAWS(this._params.mainRegion || 'us-east-1');
-    let es = new(aws.ES)();
-    let info = (await es.describeElasticsearchDomain({
-      DomainName: this._params.elasticsearchName
-    }).promise()).DomainStatus;
+    let aws: any = await this.getAccountService().getMainAccountAWS(this._params.mainRegion || "us-east-1");
+    let es = new aws.ES();
+    let info = (
+      await es
+        .describeElasticsearchDomain({
+          DomainName: this._params.elasticsearchName,
+        })
+        .promise()
+    ).DomainStatus;
     return info.Endpoints.vpc;
   }
 
@@ -85,31 +92,30 @@ export default class ElkSetup extends Configurer {
 
   static getModda() {
     return {
-      "uuid": "IvoryShield/ElkSetup",
-      "label": "ElasticSearch-Kibana Setup",
-      "description": "Store your CloudTrail into a AWS ElasticSearch to allow you to research on it, it can also store the metrics collected by CronChecker",
-      "webcomponents": [],
-      "logo": "images/icons/dynamodb.png",
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      "configuration": {
-        "schema": {
+      uuid: "IvoryShield/ElkSetup",
+      label: "ElasticSearch-Kibana Setup",
+      description:
+        "Store your CloudTrail into a AWS ElasticSearch to allow you to research on it, it can also store the metrics collected by CronChecker",
+      webcomponents: [],
+      logo: "images/icons/dynamodb.png",
+      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
+      configuration: {
+        schema: {
           type: "object",
           properties: {
-            "elasticsearchName": {
-              type: "string"
+            elasticsearchName: {
+              type: "string",
             },
-            "storageSpace": {
+            storageSpace: {
               type: "number",
-              title: "Number of Gb for ElasticSearch"
-            }
+              title: "Number of Gb for ElasticSearch",
+            },
           },
-          required: ["elasticsearchName"]
-        }
-      }
-    }
+          required: ["elasticsearchName"],
+        },
+      },
+    };
   }
 }
 
-export {
-  ElkSetup
-};
+export { ElkSetup };

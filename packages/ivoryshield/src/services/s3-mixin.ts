@@ -1,30 +1,22 @@
 "use strict";
-import {
-  Core as Webda,
-  Service
-} from 'webda';
-import {
-  IvoryShieldService
-} from './service';
-import {
-  S3,
-  AWSError,
-  Response
-} from 'aws-sdk';
+import { Core as Webda, Service } from "@webda/core";
+import { IvoryShieldService } from "./service";
+import { S3, AWSError, Response } from "aws-sdk";
 
+type Constructor<T extends IvoryShieldService> = new (...args: any[]) => T;
 
-type Constructor < T extends IvoryShieldService > = new(...args: any[]) => T;
-
-function S3MixIn < T extends Constructor < IvoryShieldService >> (Base: T) {
+function S3MixIn<T extends Constructor<IvoryShieldService>>(Base: T) {
   return class extends Base {
     async bucketExists(s3, bucket) {
       try {
-        await s3.headBucket({
-          Bucket: bucket
-        }).promise();
+        await s3
+          .headBucket({
+            Bucket: bucket,
+          })
+          .promise();
         return true;
       } catch (err) {
-        if (err.code === 'Forbidden') {
+        if (err.code === "Forbidden") {
           throw err;
         }
         return false;
@@ -33,14 +25,14 @@ function S3MixIn < T extends Constructor < IvoryShieldService >> (Base: T) {
 
     async bucketCreate(s3, bucket, region: string = undefined) {
       let params: any = {
-        Bucket: bucket
+        Bucket: bucket,
       };
       if (region) {
         params.CreateBucketConfiguration = {
-          LocationConstraint: region
-        }
+          LocationConstraint: region,
+        };
       }
-      this.log('ACTION', 'Create S3 Bucket', bucket);
+      this.log("ACTION", "Create S3 Bucket", bucket);
       if (this.pretend()) {
         return;
       }
@@ -50,46 +42,56 @@ function S3MixIn < T extends Constructor < IvoryShieldService >> (Base: T) {
 
     async bucketHasVersioning(s3, bucket) {
       try {
-        let data = await s3.getBucketVersioning({
-          Bucket: bucket
-        }).promise();
-        return data.Status === 'Enabled'
+        let data = await s3
+          .getBucketVersioning({
+            Bucket: bucket,
+          })
+          .promise();
+        return data.Status === "Enabled";
       } catch (err) {
         return false;
       }
     }
 
     async doBucketSetPolicy(s3, bucket: string, policy: string) {
-      return s3.putBucketPolicy({
-        Bucket: bucket,
-        Policy: policy
-      }).promise();
+      return s3
+        .putBucketPolicy({
+          Bucket: bucket,
+          Policy: policy,
+        })
+        .promise();
     }
 
     async bucketGetPolicy(s3, bucket: string) {
-      return s3.getBucketPolicy({
-        Bucket: bucket
-      }).promise();
+      return s3
+        .getBucketPolicy({
+          Bucket: bucket,
+        })
+        .promise();
     }
 
-    async bucketSetVersioning(s3, bucket, status = 'Enabled') {
-      this.log('ACTION', 'Set versioning on S3 Bucket', bucket);
+    async bucketSetVersioning(s3, bucket, status = "Enabled") {
+      this.log("ACTION", "Set versioning on S3 Bucket", bucket);
       if (this.pretend()) {
         return;
       }
-      await s3.putBucketVersioning({
-        Bucket: bucket,
-        VersioningConfiguration: {
-          Status: 'Enabled'
-        }
-      }).promise();
+      await s3
+        .putBucketVersioning({
+          Bucket: bucket,
+          VersioningConfiguration: {
+            Status: "Enabled",
+          },
+        })
+        .promise();
     }
 
     async bucketHasEncryption(s3: S3, bucket: string) {
       try {
-        return await s3.getBucketEncryption({
-          Bucket: bucket
-        }).promise();
+        return await s3
+          .getBucketEncryption({
+            Bucket: bucket,
+          })
+          .promise();
       } catch (err) {
         return false;
       }
@@ -98,31 +100,27 @@ function S3MixIn < T extends Constructor < IvoryShieldService >> (Base: T) {
     async bucketSetEncryption(s3: S3, bucket: string, configuration: any = undefined) {
       if (!configuration) {
         configuration = {
-          Rules: [{
-            ApplyServerSideEncryptionByDefault: {
-              SSEAlgorithm: 'AES256'
-            }
-          }]
-        }
+          Rules: [
+            {
+              ApplyServerSideEncryptionByDefault: {
+                SSEAlgorithm: "AES256",
+              },
+            },
+          ],
+        };
       }
-      this.log('ACTION', 'Set encryption on S3 Bucket', bucket);
+      this.log("ACTION", "Set encryption on S3 Bucket", bucket);
       if (this.pretend()) {
         return;
       }
-      await s3.putBucketEncryption({
-        Bucket: bucket,
-        ServerSideEncryptionConfiguration: configuration
-      }).promise();
+      await s3
+        .putBucketEncryption({
+          Bucket: bucket,
+          ServerSideEncryptionConfiguration: configuration,
+        })
+        .promise();
     }
-  }
+  };
 }
 
-export {
-  S3MixIn,
-  Service,
-  Constructor,
-  IvoryShieldService,
-  Webda,
-  AWSError,
-  Response
-};
+export { S3MixIn, Service, Constructor, IvoryShieldService, Webda, AWSError, Response };

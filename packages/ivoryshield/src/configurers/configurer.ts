@@ -1,12 +1,7 @@
-import {
-  IvoryShieldService
-} from '../services/service';
-import {
-  AccountsService
-} from '../services/accounts';
+import { IvoryShieldService } from "../services/service";
+import { AccountsService } from "../services/accounts";
 
 export class Configurer extends IvoryShieldService {
-
   isEnableOn(account, region = undefined) {
     // Override this method to filter by account or region
     return true;
@@ -16,7 +11,5 @@ export class Configurer extends IvoryShieldService {
     return true;
   }
 
-  configure(aws, account, region = undefined) {
-
-  }
+  configure(aws, account, region = undefined) {}
 }
