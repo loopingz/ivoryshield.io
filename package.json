@@ -1,0 +1,24 @@
+{
+  "name": "root",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "lerna run build",
+    "test": "lerna run test",
+    "new-version": "lerna version",
+    "lerna:publish": "lerna publish"
+  },
+  "devDependencies": {
+    "@istanbuljs/nyc-config-typescript": "^0.1.3",
+    "@types/node": "^12.0.0",
+    "lerna": "^3.20.2",
+    "typescript": "^3.7.4",
+    "mocha": ">=6.1.4",
+    "mocha-typescript": "^1.1.17",
+    "nyc": "^14.0.0",
+    "prettier": "^1.16.4",
+    "remap-istanbul": "^0.13.0"
+  }
+}
