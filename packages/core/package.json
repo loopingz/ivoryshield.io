@@ -1,5 +1,5 @@
 {
-  "name": "ivoryshield",
+  "name": "@ivoryshield/core",
   "version": "1.0.0",
   "description": "Protect your cloud and automate it",
   "main": "lib/index.js",
