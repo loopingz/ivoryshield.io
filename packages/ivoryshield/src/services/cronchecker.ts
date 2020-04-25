@@ -1,4 +1,3 @@
-import { AWSServiceMixIn } from "../services/aws-mixin";
 import { Service } from "@webda/core";
 import { ValidatorService } from "./validator";
 import { Configurer } from "../configurers/configurer";
@@ -6,8 +5,9 @@ import { Resource } from "../resources/Resource";
 import * as fs from "fs";
 import * as elasticsearch from "elasticsearch";
 import * as moment from "moment";
+import IvoryShieldService from "./service";
 
-export default class CronCheckerService extends AWSServiceMixIn(Service) {
+export default class CronCheckerService extends IvoryShieldService {
   _validatorService: ValidatorService;
   _metrics: any;
   _configurers: Configurer[] = [];
@@ -18,7 +18,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
 
   resolve() {
     this._validatorService = <ValidatorService>this.getService("IvoryShield/ValidatorService");
-    let configurers = <Map<string, Configurer>>this._webda.getServicesImplementations(Configurer);
+    let configurers = this._webda.getServicesImplementations(Configurer);
     for (let i in configurers) {
       let service = <Configurer>configurers[i];
       if (service.isGlobal()) {
@@ -32,7 +32,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
   }
 
   normalizeParams() {
-    this._params.configurers = this._params.configurers || [];
+    this.getParameters().configurers = this.getParameters().configurers || [];
   }
 
   async init(): Promise<void> {
@@ -42,12 +42,12 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
         Resources: 0,
       },
     };
-    if (this._params.elasticsearch) {
-      this.log("DEBUG", "Creating ES client to", this._params.elasticsearch);
+    if (this.getParameters().elasticsearch) {
+      this.log("DEBUG", "Creating ES client to", this.getParameters().elasticsearch);
       this._es = new elasticsearch.Client({
-        host: this._params.elasticsearch,
+        host: this.getParameters().elasticsearch,
       });
-      this._params.elasticsearchIndex = this._params.elasticsearchIndex || "metrics";
+      this.getParameters().elasticsearchIndex = this.getParameters().elasticsearchIndex || "metrics";
     }
   }
 
@@ -237,9 +237,10 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
     }
     let service = this.getService(serviceName);
     if (!service) {
-      if (this._webda._services[serviceName]) {
+      if (this._webda.getService(serviceName) && false) {
+        // TODO Clean this one
         this.log("WARN", "Service is not enable, will create a local instance");
-        service = new this._webda._services[serviceName](this._webda, "test", this._webda._config);
+        //service = new this._webda.getServicesImplementations(serviceName)[serviceName](this._webda, "test", this._webda._config);
         await service.init();
       } else {
         this.log("ERROR", "The service", serviceName, "does not exist");
@@ -360,7 +361,7 @@ export default class CronCheckerService extends AWSServiceMixIn(Service) {
       let name = await this.getAccountName(i);
       if (i === "Global" || name === "Unknown") continue;
       let esData: any = {};
-      esData.index = this._params.elasticsearchIndex;
+      esData.index = this.getParameters().elasticsearchIndex;
       esData.id = i + "-" + metrics.timestamp;
       //'2018-02-09T22:14:54Z'
 

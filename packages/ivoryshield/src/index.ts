@@ -7,7 +7,6 @@ import { AutoTagCreatorValidator } from "./validators/autotagcreator";
 import { CloudTrailService } from "./services/cloudtrail";
 import { CronCheckerService } from "./services/cronchecker";
 import { ValidatorService } from "./services/validator";
-import { AWSServiceMixIn } from "./services/aws-mixin";
 import { IvoryShieldService } from "./services/service";
 
 let Resources = {
@@ -38,7 +37,6 @@ export {
   CronCheckerService,
   CloudTrailService,
   ValidatorService,
-  AWSServiceMixIn,
   Resources,
   IvoryShieldService,
 };

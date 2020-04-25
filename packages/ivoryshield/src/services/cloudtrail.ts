@@ -1,5 +1,5 @@
-import { AWSServiceMixIn, STS, Webda, Service, AWS } from "../services/aws-mixin";
-import { Queue } from "@webda/core";
+import { IvoryShieldService } from "./service";
+import { Service } from "@webda/core";
 import { S3 } from "aws-sdk";
 import { ValidatorService } from "./validator";
 import { CloudTrailSetup } from "../configurers/cloudtrail";
@@ -9,7 +9,7 @@ import * as zlib from "zlib";
 import * as elasticsearch from "elasticsearch";
 import * as PromiseUtil from "bluebird";
 
-export default class CloudTrailService extends AWSServiceMixIn(Queue) {
+export default class CloudTrailService extends IvoryShieldService {
   _events: number;
   _counter: number;
   _s3: S3;
@@ -37,12 +37,8 @@ export default class CloudTrailService extends AWSServiceMixIn(Queue) {
   }
 
   work() {
-    this._events = 0;
-    this._counter = 0;
-
-    this.callback = this.processTrailQueue.bind(this);
-    this._workerReceiveMessage();
-    return new Promise(() => {});
+    // Get queue
+    // this.processTrailQueue.bind(this);
   }
 
   async install(params: any) {
@@ -103,7 +99,8 @@ export default class CloudTrailService extends AWSServiceMixIn(Queue) {
   }
 
   run() {
-    return this.worker(this.processTrailQueue.bind(this));
+    // TODO Get queue
+    //return this.worker(this.processTrailQueue.bind(this));
   }
 
   processTrailQueue(s3evt) {

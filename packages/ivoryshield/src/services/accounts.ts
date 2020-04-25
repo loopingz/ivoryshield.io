@@ -1,11 +1,10 @@
-import { Service } from "@webda/core";
-import { AWSServiceMixIn, STS, Webda, AWS } from "./aws-mixin";
+import { IvoryShieldService } from "./service";
 
 interface AccountMap {
   [key: string]: any;
 }
 
-export default class AccountsService extends AWSServiceMixIn(Service) {
+export default class AccountsService extends IvoryShieldService {
   private accounts: AccountMap = [];
   private expire: number = 0;
   private delay: number = 3600;
